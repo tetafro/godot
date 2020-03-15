@@ -37,11 +37,13 @@ func Run(file *ast.File, fset *token.FileSet) []Message {
 		// Get last element from comment group - it can be either
 		// last (or single) line for "//"-comment, or multiline string
 		// for "/*"-comment
-		last := group.List[len(group.List)-1].Text
+		last := group.List[len(group.List)-1]
 
-		if !checkComment(last) {
+		if line, ok := checkComment(last.Text); !ok {
+			pos := fset.Position(last.Slash)
+			pos.Line += line
 			msgs = append(msgs, Message{
-				Pos:     fset.Position(group.Pos()),
+				Pos:     pos,
 				Message: "Top level comment should end in a period",
 			})
 		}
@@ -49,25 +51,25 @@ func Run(file *ast.File, fset *token.FileSet) []Message {
 	return msgs
 }
 
-func checkComment(comment string) bool {
+func checkComment(comment string) (line int, ok bool) {
 	// Check last line of "//"-comment
 	if strings.HasPrefix(comment, "//") {
 		comment = strings.TrimPrefix(comment, "//")
-		return checkLastChar(comment)
+		return 0, checkLastChar(comment)
 	}
 
 	// Check multiline "/*"-comment block
 	lines := strings.Split(comment, "\n")
-	for i := len(lines) - 1; i >= 0; i-- {
-		if strings.TrimSpace(lines[i]) == "*/" || lines[i] == "" {
+	var i int
+	for i = len(lines) - 1; i >= 0; i-- {
+		if s := strings.TrimSpace(lines[i]); s == "*/" || s == "" {
 			continue
 		}
-		comment = strings.TrimPrefix(lines[i], "/*")
-		comment = strings.TrimSuffix(comment, "*/")
-		return checkLastChar(comment)
+		break
 	}
-
-	return true
+	comment = strings.TrimPrefix(lines[i], "/*")
+	comment = strings.TrimSuffix(comment, "*/")
+	return i, checkLastChar(comment)
 }
 
 func checkLastChar(s string) bool {
