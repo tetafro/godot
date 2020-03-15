@@ -47,6 +47,12 @@ func TestCheckComment(t *testing.T) {
 			line:    0,
 		},
 		{
+			name:    "singleline comment: code example without period and tab indentation",
+			comment: "//\tx == y",
+			ok:      true,
+			line:    0,
+		},
+		{
 			name:    "singleline comment: empty line",
 			comment: "//",
 			ok:      true,
@@ -88,6 +94,12 @@ func TestCheckComment(t *testing.T) {
 			ok:      true,
 			line:    0,
 		},
+		{
+			name:    "singleline comment: url at the end of line",
+			comment: "// Read more: http://example.com/",
+			ok:      true,
+			line:    0,
+		},
 		// Multiline comments
 		{
 			name:    "multiline comment: ok",
@@ -122,6 +134,12 @@ func TestCheckComment(t *testing.T) {
 		{
 			name:    "multiline comment: code example without period and long indentation",
 			comment: "/*\n" + "       x == y\n" + "*/",
+			ok:      true,
+			line:    1,
+		},
+		{
+			name:    "multiline comment: code example without period and tab indentation",
+			comment: "/*\n" + "\tx == y\n" + "*/",
 			ok:      true,
 			line:    1,
 		},
@@ -172,6 +190,12 @@ func TestCheckComment(t *testing.T) {
 			comment: "/*\n" + "\n" + "   \n" + "Hello, world\n" + "\n" + "  \n" + "*/",
 			ok:      false,
 			line:    3,
+		},
+		{
+			name:    "multiline comment: url at the end of line",
+			comment: "/*\n" + "Read more: http://example.com/" + "*/",
+			ok:      true,
+			line:    1,
 		},
 	}
 

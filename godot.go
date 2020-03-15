@@ -15,11 +15,16 @@ type Message struct {
 	Message string
 }
 
-// List of valid last characters.
-var lastChars = []string{".", "?", "!"}
+var (
+	// List of valid last characters.
+	lastChars = []string{".", "?", "!"}
 
-// Special tags in comments like "nolint" or "build".
-var tags = regexp.MustCompile("^[a-z]+:")
+	// Special tags in comments like "nolint" or "build".
+	tags = regexp.MustCompile("^[a-z]+:")
+
+	// URL at the end of the line
+	endURL = regexp.MustCompile(`[a-z]+://[^\s]+$`)
+)
 
 // Run runs this linter on the provided code.
 func Run(file *ast.File, fset *token.FileSet) []Message {
@@ -75,11 +80,11 @@ func checkComment(comment string) (line int, ok bool) {
 func checkLastChar(s string) bool {
 	// Don't check comments starting with space indentation - they may
 	// contain code examples, which shouldn't end with period
-	if strings.HasPrefix(s, "  ") {
+	if strings.HasPrefix(s, "  ") || strings.HasPrefix(s, "\t") {
 		return true
 	}
 	s = strings.TrimSpace(s)
-	if tags.MatchString(s) || strings.HasPrefix(s, "+build") {
+	if tags.MatchString(s) || endURL.MatchString(s) || strings.HasPrefix(s, "+build") {
 		return true
 	}
 	// Don't check empty lines
