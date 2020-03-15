@@ -11,18 +11,16 @@ import (
 	"github.com/tetafro/godot"
 )
 
-const usage = `godot []`
-
 func main() {
 	if len(os.Args) < 2 {
 		fatal("Usage:\n  godot [FILES]")
 	}
-
 	input := os.Args[1:]
-	fset := token.NewFileSet()
-	files := make([]*ast.File, len(input))
 
-	for i, f := range input {
+	var files []*ast.File
+	fset := token.NewFileSet()
+
+	for _, f := range input {
 		stat, err := os.Stat(f)
 		if os.IsNotExist(err) {
 			fatal("File %s does not exist", f)
@@ -38,7 +36,7 @@ func main() {
 		if err != nil {
 			fatal("Failed to parse file %s: %v", f, err)
 		}
-		files[i] = file
+		files = append(files, file)
 	}
 
 	for _, file := range files {
