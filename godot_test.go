@@ -69,6 +69,11 @@ func TestCheckComment(t *testing.T) {
 			comment: "//nolint: test",
 			ok:      true,
 		},
+		{
+			name:    "singleline comment: build tags",
+			comment: "// +build !linux",
+			ok:      true,
+		},
 		// Multiline comments
 		{
 			name:    "multiline comment: ok",

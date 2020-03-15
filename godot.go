@@ -5,6 +5,7 @@ package godot
 import (
 	"go/ast"
 	"go/token"
+	"regexp"
 	"strings"
 )
 
@@ -16,6 +17,9 @@ type Message struct {
 
 // List of valid last characters.
 var lastChars = []string{".", "?", "!"}
+
+// Special tags in comments like "nolint" or "build".
+var tags = regexp.MustCompile("^[a-z]+:")
 
 // Run runs this linter on the provided code.
 func Run(file *ast.File, fset *token.FileSet) []Message {
@@ -73,7 +77,7 @@ func checkLastChar(s string) bool {
 		return true
 	}
 	s = strings.TrimSpace(s)
-	if strings.HasPrefix(s, "nolint:") {
+	if tags.MatchString(s) || strings.HasPrefix(s, "+build") {
 		return true
 	}
 	// Don't check empty lines
