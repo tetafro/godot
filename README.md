@@ -17,3 +17,22 @@ end of the last sentence if needed.
 go get -u github.com/tetafro/godot/cmd/godot
 godot ./myproject/main.go
 ```
+
+## Examples
+
+Code
+
+```go
+package math
+
+// Sum sums two integers
+func Sum(a, b int) int {
+    return a + b // result
+}
+```
+
+Output
+
+```sh
+Top level comment should end in a period: math/math.go:3:1
+```
