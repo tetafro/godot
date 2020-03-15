@@ -59,6 +59,16 @@ func TestCheckComment(t *testing.T) {
 			comment: "//hello, world",
 			ok:      false,
 		},
+		{
+			name:    "singleline comment: nolint mark without period",
+			comment: "// nolint: test",
+			ok:      true,
+		},
+		{
+			name:    "singleline comment: nolint mark without indentation without period",
+			comment: "//nolint: test",
+			ok:      true,
+		},
 		// Multiline comments
 		{
 			name:    "multiline comment: ok",

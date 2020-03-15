@@ -73,6 +73,9 @@ func checkLastChar(s string) bool {
 		return true
 	}
 	s = strings.TrimSpace(s)
+	if strings.HasPrefix(s, "nolint:") {
+		return true
+	}
 	// Don't check empty lines
 	if s == "" {
 		return true
