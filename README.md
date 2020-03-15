@@ -1,5 +1,7 @@
 # godot
 
+[![Go Report](https://goreportcard.com/badge/github.com/tetafro/godot)](https://goreportcard.com/report/github.com/tetafro/godot)
+
 Linter that checks if all top-level comments contain a period at the
 end of the last sentence if needed.
 
