@@ -7,3 +7,10 @@ end of the last sentence if needed.
 
 > Comments should begin with the name of the thing being described
 > and end in a period
+
+## Install and run
+
+```sh
+go get -u github.com/tetafro/godot/cmd/godot
+godot ./myproject/main.go
+```
