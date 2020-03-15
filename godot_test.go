@@ -1,6 +1,13 @@
 package godot
 
-import "testing"
+import (
+	"go/parser"
+	"go/token"
+	"path/filepath"
+	"testing"
+)
+
+var testFile = filepath.Join("testdata", "example.go")
 
 func TestCheckComment(t *testing.T) {
 	testCases := []struct {
@@ -210,5 +217,61 @@ func TestCheckComment(t *testing.T) {
 				t.Fatalf("Wrong line, expected %d, got %d", tt.line, line)
 			}
 		})
+	}
+}
+
+func TestIntegration(t *testing.T) {
+	expected := []Message{
+		{
+			Message: "Top level comment should end in a period",
+			Pos: token.Position{
+				Filename: "testdata/example.go",
+				Column:   1,
+				Line:     7,
+			},
+		},
+		{
+			Message: "Top level comment should end in a period",
+			Pos: token.Position{
+				Filename: "testdata/example.go",
+				Column:   1,
+				Line:     15,
+			},
+		},
+		{
+			Message: "Top level comment should end in a period",
+			Pos: token.Position{
+				Filename: "testdata/example.go",
+				Column:   1,
+				Line:     19,
+			},
+		},
+		{
+			Message: "Top level comment should end in a period",
+			Pos: token.Position{
+				Filename: "testdata/example.go",
+				Column:   1,
+				Line:     32,
+			},
+		},
+	}
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("Failed to parse file %s: %v", testFile, err)
+	}
+
+	msgs := Run(file, fset)
+	if len(msgs) != len(expected) {
+		t.Fatalf("Invalid number of result messages\n  expected: %d\n       got: %d",
+			len(expected), len(msgs))
+	}
+	for i := range msgs {
+		if msgs[i].Pos.Filename != expected[i].Pos.Filename ||
+			msgs[i].Pos.Line != expected[i].Pos.Line {
+			t.Fatalf("Unexpected position\n  expected %s\n       got %s",
+				expected[i].Pos, msgs[i].Pos)
+		}
 	}
 }
