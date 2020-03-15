@@ -15,7 +15,7 @@ end of the last sentence if needed.
 
 ```sh
 go get -u github.com/tetafro/godot/cmd/godot
-godot ./myproject/main.go
+godot ./myproject
 ```
 
 ## Examples
