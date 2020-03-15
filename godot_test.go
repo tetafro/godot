@@ -225,7 +225,7 @@ func TestIntegration(t *testing.T) {
 		{
 			Message: "Top level comment should end in a period",
 			Pos: token.Position{
-				Filename: "testdata/example.go",
+				Filename: testFile,
 				Column:   1,
 				Line:     7,
 			},
@@ -233,7 +233,7 @@ func TestIntegration(t *testing.T) {
 		{
 			Message: "Top level comment should end in a period",
 			Pos: token.Position{
-				Filename: "testdata/example.go",
+				Filename: testFile,
 				Column:   1,
 				Line:     15,
 			},
@@ -241,7 +241,7 @@ func TestIntegration(t *testing.T) {
 		{
 			Message: "Top level comment should end in a period",
 			Pos: token.Position{
-				Filename: "testdata/example.go",
+				Filename: testFile,
 				Column:   1,
 				Line:     19,
 			},
@@ -249,7 +249,7 @@ func TestIntegration(t *testing.T) {
 		{
 			Message: "Top level comment should end in a period",
 			Pos: token.Position{
-				Filename: "testdata/example.go",
+				Filename: testFile,
 				Column:   1,
 				Line:     32,
 			},
