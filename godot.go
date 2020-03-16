@@ -60,7 +60,7 @@ func Run(file *ast.File, fset *token.FileSet, settings Settings) []Message {
 }
 
 func check(fset *token.FileSet, group *ast.CommentGroup) (ok bool, msg Message) {
-	if len(group.List) == 0 {
+	if group == nil || len(group.List) == 0 {
 		return true, Message{}
 	}
 

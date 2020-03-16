@@ -34,4 +34,6 @@ func Mult(a, b int) int {
 	return a * b // result
 }
 
+func nocomment() {}
+
 // Comment with a URL - ok http://example.com
