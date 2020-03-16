@@ -15,6 +15,12 @@ type Message struct {
 	Message string
 }
 
+// Settings contains linter settings.
+type Settings struct {
+	// Check all top-level comments, not only declarations
+	CheckAll bool
+}
+
 var (
 	// List of valid last characters.
 	lastChars = []string{".", "?", "!"}
@@ -22,38 +28,62 @@ var (
 	// Special tags in comments like "nolint" or "build".
 	tags = regexp.MustCompile("^[a-z]+:")
 
-	// URL at the end of the line
+	// URL at the end of the line.
 	endURL = regexp.MustCompile(`[a-z]+://[^\s]+$`)
 )
 
 // Run runs this linter on the provided code.
-func Run(file *ast.File, fset *token.FileSet) []Message {
+func Run(file *ast.File, fset *token.FileSet, settings Settings) []Message {
 	msgs := []Message{}
-	for _, group := range file.Comments {
-		if len(group.List) == 0 {
-			continue
+
+	// Check all top-level comments
+	if settings.CheckAll {
+		for _, group := range file.Comments {
+			if ok, msg := check(fset, group); !ok {
+				msgs = append(msgs, msg)
+			}
 		}
+		return msgs
+	}
 
-		// Check only top-level comments
-		if fset.Position(group.Pos()).Column > 1 {
-			continue
-		}
-
-		// Get last element from comment group - it can be either
-		// last (or single) line for "//"-comment, or multiline string
-		// for "/*"-comment
-		last := group.List[len(group.List)-1]
-
-		if line, ok := checkComment(last.Text); !ok {
-			pos := fset.Position(last.Slash)
-			pos.Line += line
-			msgs = append(msgs, Message{
-				Pos:     pos,
-				Message: "Top level comment should end in a period",
-			})
+	// Check only declaration comments
+	for _, decl := range file.Decls {
+		switch d := decl.(type) {
+		case *ast.GenDecl:
+		case *ast.FuncDecl:
+			if ok, msg := check(fset, d.Doc); !ok {
+				msgs = append(msgs, msg)
+			}
 		}
 	}
 	return msgs
+}
+
+func check(fset *token.FileSet, group *ast.CommentGroup) (ok bool, msg Message) {
+	if len(group.List) == 0 {
+		return true, Message{}
+	}
+
+	// Check only top-level comments
+	if fset.Position(group.Pos()).Column > 1 {
+		return true, Message{}
+	}
+
+	// Get last element from comment group - it can be either
+	// last (or single) line for "//"-comment, or multiline string
+	// for "/*"-comment
+	last := group.List[len(group.List)-1]
+
+	line, ok := checkComment(last.Text)
+	if ok {
+		return true, Message{}
+	}
+	pos := fset.Position(last.Slash)
+	pos.Line += line
+	return false, Message{
+		Pos:     pos,
+		Message: "Top level comment should end in a period",
+	}
 }
 
 func checkComment(comment string) (line int, ok bool) {

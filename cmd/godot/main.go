@@ -12,11 +12,13 @@ import (
 	"github.com/tetafro/godot"
 )
 
+const usage = `Usage:
+    godot [OPTION] [FILES]
+Options:
+    -a, --all    check all top-level comments (not only declarations)`
+
 func main() {
-	if len(os.Args) < 2 {
-		fatal("Usage:\n  godot [FILES]")
-	}
-	input := os.Args[1:]
+	settings, input := parseInput()
 
 	var files []*ast.File
 	fset := token.NewFileSet()
@@ -35,11 +37,28 @@ func main() {
 	}
 
 	for _, file := range files {
-		msgs := godot.Run(file, fset)
+		msgs := godot.Run(file, fset, settings)
 		for _, msg := range msgs {
 			fmt.Printf("%s: %s\n", msg.Message, msg.Pos)
 		}
 	}
+}
+
+func parseInput() (settings godot.Settings, files []string) {
+	if len(os.Args) < 2 {
+		fatal(usage)
+	}
+
+	if os.Args[1] == "-a" || os.Args[1] == "--all" {
+		if len(os.Args) < 3 {
+			fatal(usage)
+		}
+		settings.CheckAll = true
+		files = os.Args[2:]
+	} else {
+		files = os.Args[1:]
+	}
+	return
 }
 
 func findFiles(root string) chan string {
