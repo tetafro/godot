@@ -4,10 +4,9 @@ import (
 	"go/parser"
 	"go/token"
 	"path/filepath"
+	"strings"
 	"testing"
 )
-
-var testFile = filepath.Join("testdata", "example.go")
 
 func TestCheckComment(t *testing.T) {
 	testCases := []struct {
@@ -221,46 +220,44 @@ func TestCheckComment(t *testing.T) {
 }
 
 func TestIntegration(t *testing.T) {
-	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
-	if err != nil {
-		t.Fatalf("Failed to parse file %s: %v", testFile, err)
-	}
+	// t.Run("default check", func(t *testing.T) {
+	// 	var testFile = filepath.Join("testdata", "example_default.go")
+	// 	expected, err := readTestFile(testFile)
+	// 	if err != nil {
+	// 		t.Fatalf("Failed to read test file %s: %v", testFile, err)
+	// 	}
+
+	// 	fset := token.NewFileSet()
+	// 	file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
+	// 	if err != nil {
+	// 		t.Fatalf("Failed to parse file %s: %v", testFile, err)
+	// 	}
+
+	// 	msgs := Run(file, fset, Settings{CheckAll: false})
+	// 	if len(msgs) != len(expected) {
+	// 		t.Fatalf("Invalid number of result messages\n  expected: %d\n       got: %d",
+	// 			len(expected), len(msgs))
+	// 	}
+	// 	for i := range msgs {
+	// 		if msgs[i].Pos.Filename != expected[i].Pos.Filename ||
+	// 			msgs[i].Pos.Line != expected[i].Pos.Line {
+	// 			t.Fatalf("Unexpected position\n  expected %s\n       got %s",
+	// 				expected[i].Pos, msgs[i].Pos)
+	// 		}
+	// 	}
+	// })
 
 	t.Run("check all", func(t *testing.T) {
-		expected := []Message{
-			{
-				Message: "Top level comment should end in a period",
-				Pos: token.Position{
-					Filename: testFile,
-					Column:   1,
-					Line:     7,
-				},
-			},
-			{
-				Message: "Top level comment should end in a period",
-				Pos: token.Position{
-					Filename: testFile,
-					Column:   1,
-					Line:     15,
-				},
-			},
-			{
-				Message: "Top level comment should end in a period",
-				Pos: token.Position{
-					Filename: testFile,
-					Column:   1,
-					Line:     19,
-				},
-			},
-			{
-				Message: "Top level comment should end in a period",
-				Pos: token.Position{
-					Filename: testFile,
-					Column:   1,
-					Line:     32,
-				},
-			},
+		var testFile = filepath.Join("testdata", "example_checkall.go")
+		expected, err := readTestFile(testFile)
+		if err != nil {
+			t.Fatalf("Failed to read test file %s: %v", testFile, err)
+		}
+
+		fset := token.NewFileSet()
+		file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
+		if err != nil {
+			t.Fatalf("Failed to parse file %s: %v", testFile, err)
 		}
 
 		msgs := Run(file, fset, Settings{CheckAll: true})
@@ -271,35 +268,46 @@ func TestIntegration(t *testing.T) {
 		for i := range msgs {
 			if msgs[i].Pos.Filename != expected[i].Pos.Filename ||
 				msgs[i].Pos.Line != expected[i].Pos.Line {
-				t.Fatalf("Unexpected position\n  expected %s\n       got %s",
-					expected[i].Pos, msgs[i].Pos)
+				t.Fatalf("Unexpected position\n  expected %d:%d\n       got %d:%d",
+					expected[i].Pos.Line, expected[i].Pos.Column,
+					msgs[i].Pos.Line, msgs[i].Pos.Column,
+				)
 			}
 		}
 	})
+}
 
-	t.Run("check declarations", func(t *testing.T) {
-		expected := []Message{
-			{
-				Message: "Top level comment should end in a period",
-				Pos: token.Position{
-					Filename: testFile,
-					Column:   1,
-					Line:     32,
-				},
-			},
-		}
+// readTestFile reads comments from file. If comment contains "PASS",
+// it should not be among error messages. If comment contains "FAIL",
+// it should be among error messages.
+func readTestFile(file string) ([]Message, error) {
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, file, nil, parser.ParseComments)
+	if err != nil {
+		return nil, err
+	}
 
-		msgs := Run(file, fset, Settings{CheckAll: false})
-		if len(msgs) != len(expected) {
-			t.Fatalf("Invalid number of result messages\n  expected: %d\n       got: %d",
-				len(expected), len(msgs))
+	var msgs []Message
+	for _, group := range f.Comments {
+		if group == nil || len(group.List) == 0 {
+			continue
 		}
-		for i := range msgs {
-			if msgs[i].Pos.Filename != expected[i].Pos.Filename ||
-				msgs[i].Pos.Line != expected[i].Pos.Line {
-				t.Fatalf("Unexpected position\n  expected %s\n       got %s",
-					expected[i].Pos, msgs[i].Pos)
+		for _, com := range group.List {
+			// Check every line for multiline comments
+			for i, line := range strings.Split(com.Text, "\n") {
+				if strings.Contains(line, "PASS") {
+					continue
+				}
+				if strings.Contains(line, "FAIL") {
+					pos := fset.Position(com.Slash)
+					pos.Line += i
+					msgs = append(msgs, Message{
+						Pos:     pos,
+						Message: noPeriodMessage,
+					})
+				}
 			}
 		}
-	})
+	}
+	return msgs, nil
 }

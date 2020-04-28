@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+const noPeriodMessage = "Top level comment should end in a period"
+
 // Message contains a message of linting error.
 type Message struct {
 	Pos     token.Position
@@ -27,6 +29,9 @@ var (
 
 	// Special tags in comments like "nolint" or "build".
 	tags = regexp.MustCompile("^[a-z]+:")
+
+	// Special hashtags in comments like "#nosec".
+	hashtags = regexp.MustCompile("^#[a-z]+ ")
 
 	// URL at the end of the line.
 	endURL = regexp.MustCompile(`[a-z]+://[^\s]+$`)
@@ -50,6 +55,9 @@ func Run(file *ast.File, fset *token.FileSet, settings Settings) []Message {
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {
 		case *ast.GenDecl:
+			if ok, msg := check(fset, d.Doc); !ok {
+				msgs = append(msgs, msg)
+			}
 		case *ast.FuncDecl:
 			if ok, msg := check(fset, d.Doc); !ok {
 				msgs = append(msgs, msg)
@@ -82,7 +90,7 @@ func check(fset *token.FileSet, group *ast.CommentGroup) (ok bool, msg Message) 
 	pos.Line += line
 	return false, Message{
 		Pos:     pos,
-		Message: "Top level comment should end in a period",
+		Message: noPeriodMessage,
 	}
 }
 
@@ -114,7 +122,10 @@ func checkLastChar(s string) bool {
 		return true
 	}
 	s = strings.TrimSpace(s)
-	if tags.MatchString(s) || endURL.MatchString(s) || strings.HasPrefix(s, "+build") {
+	if tags.MatchString(s) ||
+		hashtags.MatchString(s) ||
+		endURL.MatchString(s) ||
+		strings.HasPrefix(s, "+build") {
 		return true
 	}
 	// Don't check empty lines
