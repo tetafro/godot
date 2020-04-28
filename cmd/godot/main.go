@@ -65,7 +65,8 @@ func findFiles(root string) chan string {
 	out := make(chan string)
 
 	go func() {
-		filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		defer close(out)
+		err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 			sep := string(filepath.Separator)
 			if strings.HasPrefix(path, "vendor"+sep) || strings.Contains(path, sep+"vendor"+sep) {
 				return nil
@@ -75,7 +76,9 @@ func findFiles(root string) chan string {
 			}
 			return nil
 		})
-		close(out)
+		if err != nil {
+			fatal("Failed to get files from directory: %v", err)
+		}
 	}()
 
 	return out
