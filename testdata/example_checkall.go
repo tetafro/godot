@@ -1,6 +1,17 @@
 // Package comment without a period FAIL
 package example
 
+/*
+#include <stdio.h>
+#include <stdlib.h>
+
+void myprint(char* s) {
+	printf("%d\n", s);
+}
+*/
+import "C"
+import "unsafe"
+
 //args: tagged comment without period PASS
 
 // #tag hashtag comment without period PASS
@@ -58,6 +69,10 @@ func MultX(a, b int) int {
 	return a * b
 }
 
-func noCommentX() {}
+func noCommentX() {
+	cs := C.CString("Hello from stdio\n")
+	C.myprint(cs)
+	C.free(unsafe.Pointer(cs))
+}
 
 // Comment with a URL - http://example.com/PASS
