@@ -41,19 +41,9 @@ var (
 func Run(file *ast.File, fset *token.FileSet, settings Settings) []Message {
 	msgs := []Message{}
 
-	// Comment for `import "C"` contains code and should be skipped
-	importCPos := findImportC(file)
-
 	// Check all top-level comments
 	if settings.CheckAll {
 		for _, group := range file.Comments {
-			// TODO: Find a better way to detect cgo code. Currently this is
-			// just position-based arithmetic. 8 = len("\nimport "), since
-			// import position returns position of imported package name, not
-			// the beginning of the line.
-			if group.End() == importCPos-8 {
-				continue
-			}
 			if ok, msg := check(fset, group); !ok {
 				msgs = append(msgs, msg)
 			}
@@ -65,13 +55,6 @@ func Run(file *ast.File, fset *token.FileSet, settings Settings) []Message {
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {
 		case *ast.GenDecl:
-			// TODO: Find a better way to detect cgo code. Currently this is
-			// just position-based arithmetic. 7 = len("import "), since
-			// import position returns position of imported package name, not
-			// the beginning of the line.
-			if d.Pos() == importCPos-7 {
-				continue
-			}
 			if ok, msg := check(fset, d.Doc); !ok {
 				msgs = append(msgs, msg)
 			}
@@ -118,7 +101,13 @@ func checkComment(comment string) (line int, ok bool) {
 		return 0, checkLastChar(comment)
 	}
 
-	// Check multiline "/*"-comment block
+	// Skip cgo code blocks
+	// TODO: Find a better way to detect cgo code.
+	if strings.Contains(comment, "#include") || strings.Contains(comment, "#define") {
+		return 0, true
+	}
+
+	// Check last non-empty line in multiline "/*"-comment block
 	lines := strings.Split(comment, "\n")
 	var i int
 	for i = len(lines) - 1; i >= 0; i-- {
@@ -155,22 +144,4 @@ func checkLastChar(s string) bool {
 		}
 	}
 	return false
-}
-
-// findImportC finds position of `import "C"`.
-func findImportC(file *ast.File) token.Pos {
-	for _, decl := range file.Decls {
-		d, ok := decl.(*ast.GenDecl)
-		if !ok {
-			continue
-		}
-
-		for _, spec := range d.Specs {
-			imp, ok := spec.(*ast.ImportSpec)
-			if ok && imp.Path != nil && imp.Path.Value == `"C"` {
-				return imp.Pos()
-			}
-		}
-	}
-	return -1
 }
