@@ -220,32 +220,32 @@ func TestCheckComment(t *testing.T) {
 }
 
 func TestIntegration(t *testing.T) {
-	// t.Run("default check", func(t *testing.T) {
-	// 	var testFile = filepath.Join("testdata", "example_default.go")
-	// 	expected, err := readTestFile(testFile)
-	// 	if err != nil {
-	// 		t.Fatalf("Failed to read test file %s: %v", testFile, err)
-	// 	}
+	t.Run("default check", func(t *testing.T) {
+		var testFile = filepath.Join("testdata", "example_default.go")
+		expected, err := readTestFile(testFile)
+		if err != nil {
+			t.Fatalf("Failed to read test file %s: %v", testFile, err)
+		}
 
-	// 	fset := token.NewFileSet()
-	// 	file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
-	// 	if err != nil {
-	// 		t.Fatalf("Failed to parse file %s: %v", testFile, err)
-	// 	}
+		fset := token.NewFileSet()
+		file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
+		if err != nil {
+			t.Fatalf("Failed to parse file %s: %v", testFile, err)
+		}
 
-	// 	msgs := Run(file, fset, Settings{CheckAll: false})
-	// 	if len(msgs) != len(expected) {
-	// 		t.Fatalf("Invalid number of result messages\n  expected: %d\n       got: %d",
-	// 			len(expected), len(msgs))
-	// 	}
-	// 	for i := range msgs {
-	// 		if msgs[i].Pos.Filename != expected[i].Pos.Filename ||
-	// 			msgs[i].Pos.Line != expected[i].Pos.Line {
-	// 			t.Fatalf("Unexpected position\n  expected %s\n       got %s",
-	// 				expected[i].Pos, msgs[i].Pos)
-	// 		}
-	// 	}
-	// })
+		msgs := Run(file, fset, Settings{CheckAll: false})
+		if len(msgs) != len(expected) {
+			t.Fatalf("Invalid number of result messages\n  expected: %d\n       got: %d",
+				len(expected), len(msgs))
+		}
+		for i := range msgs {
+			if msgs[i].Pos.Filename != expected[i].Pos.Filename ||
+				msgs[i].Pos.Line != expected[i].Pos.Line {
+				t.Fatalf("Unexpected position\n  expected %s\n       got %s",
+					expected[i].Pos, msgs[i].Pos)
+			}
+		}
+	})
 
 	t.Run("check all", func(t *testing.T) {
 		var testFile = filepath.Join("testdata", "example_checkall.go")
