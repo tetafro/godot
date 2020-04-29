@@ -42,7 +42,7 @@ func Run(file *ast.File, fset *token.FileSet, settings Settings) []Message {
 	msgs := []Message{}
 
 	// Comment for `import "C"` contains code and should be skipped
-	importCPos := findImportC(file, fset)
+	importCPos := findImportC(file)
 
 	// Check all top-level comments
 	if settings.CheckAll {
@@ -158,7 +158,7 @@ func checkLastChar(s string) bool {
 }
 
 // findImportC finds position of `import "C"`.
-func findImportC(file *ast.File, fset *token.FileSet) token.Pos {
+func findImportC(file *ast.File) token.Pos {
 	for _, decl := range file.Decls {
 		d, ok := decl.(*ast.GenDecl)
 		if !ok {
