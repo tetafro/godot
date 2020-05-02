@@ -42,13 +42,20 @@ type ObjectX struct {
 }
 
 // Declaration comment without a period, with an indented code example:
-//   co := ComplexObject{}
+//   co := ComplexObjectX{}
 //   fmt.Println(co) // PASS
 type ComplexObjectX struct {
 	// Exported field comment - always PASS
 	Type string
 	// Unexported field comment - always PASS
 	secret int
+}
+
+// Declaration comment without a period, with a mixed indented code example:
+// 	co := MessageX{}
+// 	fmt.Println(co) // PASS
+type MessageX struct {
+	Type string
 }
 
 // Declaration multiline comment

@@ -124,7 +124,7 @@ func checkComment(comment string) (line int, ok bool) {
 func checkLastChar(s string) bool {
 	// Don't check comments starting with space indentation - they may
 	// contain code examples, which shouldn't end with period
-	if strings.HasPrefix(s, "  ") || strings.HasPrefix(s, "\t") {
+	if strings.HasPrefix(s, "  ") || strings.HasPrefix(s, " \t") || strings.HasPrefix(s, "\t") {
 		return true
 	}
 	s = strings.TrimSpace(s)

@@ -51,6 +51,13 @@ type ComplexObject struct {
 	secret int
 }
 
+// Declaration comment without a period, with a mixed indented code example:
+// 	co := Message{}
+// 	fmt.Println(co) // PASS
+type Message struct {
+	Type string
+}
+
 // Declaration multiline comment
 // second line
 // third line with a period PASS.

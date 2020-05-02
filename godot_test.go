@@ -59,6 +59,12 @@ func TestCheckComment(t *testing.T) {
 			line:    0,
 		},
 		{
+			name:    "singleline comment: code example without period and mixed indentation",
+			comment: "// \tx == y",
+			ok:      true,
+			line:    0,
+		},
+		{
 			name:    "singleline comment: empty line",
 			comment: "//",
 			ok:      true,
