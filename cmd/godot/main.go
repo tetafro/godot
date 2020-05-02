@@ -12,13 +12,41 @@ import (
 	"github.com/tetafro/godot"
 )
 
+// version is the application vesion. Set to latest git tag on `make build`.
+var version = "dev"
+
 const usage = `Usage:
     godot [OPTION] [FILES]
 Options:
-    -a, --all    check all top-level comments (not only declarations)`
+	-a, --all       check all top-level comments (not only declarations)
+	-h, --help      show this message
+	-v, --version   show version`
 
 func main() {
-	settings, input := parseInput()
+	if len(os.Args) < 2 {
+		fatal(usage)
+	}
+	if os.Args[1] == "-h" || os.Args[1] == "--help" {
+		fmt.Println(usage)
+		os.Exit(0)
+	}
+	if os.Args[1] == "-v" || os.Args[1] == "--vesion" {
+		fmt.Println(version)
+		os.Exit(0)
+	}
+	if strings.HasPrefix(os.Args[1], "-") && os.Args[1] != "-a" && os.Args[1] == "--all" {
+		fatal("Unknown flag")
+	}
+
+	var settings godot.Settings
+	input := os.Args[1:]
+	if os.Args[1] == "-a" || os.Args[1] == "--all" {
+		if len(os.Args) < 3 {
+			fatal(usage)
+		}
+		settings.CheckAll = true
+		input = os.Args[2:]
+	}
 
 	var files []*ast.File
 	fset := token.NewFileSet()
@@ -42,23 +70,6 @@ func main() {
 			fmt.Printf("%s: %s\n", msg.Message, msg.Pos)
 		}
 	}
-}
-
-func parseInput() (settings godot.Settings, files []string) {
-	if len(os.Args) < 2 {
-		fatal(usage)
-	}
-
-	if os.Args[1] == "-a" || os.Args[1] == "--all" {
-		if len(os.Args) < 3 {
-			fatal(usage)
-		}
-		settings.CheckAll = true
-		files = os.Args[2:]
-	} else {
-		files = os.Args[1:]
-	}
-	return
 }
 
 func findFiles(root string) chan string {
