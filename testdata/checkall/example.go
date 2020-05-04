@@ -1,4 +1,4 @@
-// Package comment without a period PASS
+// Package comment without a period FAIL
 package example
 
 /*
@@ -8,6 +8,8 @@ package example
 void myprint(char* s) {
 	printf("%d\n", s);
 }
+
+# PASS
 */
 import "C"
 import "unsafe"
@@ -17,7 +19,7 @@ import "unsafe"
 // #tag hashtag comment without period PASS
 
 /*
-Multiline comment without a period PASS
+Multiline comment without a period FAIL
 
 */
 
@@ -25,11 +27,11 @@ Multiline comment without a period PASS
 Multiline comment with a period PASS.
 */
 
-/* One-line comment without a period PASS */
+/* One-line comment without a period FAIL */
 
 /* One-line comment with a period PASS. */
 
-// Single-line comment without a period PASS
+// Single-line comment without a period FAIL
 
 // Single-line comment with a period PASS.
 
@@ -74,6 +76,11 @@ func Sum(a, b int) int {
 // third line without a period FAIL
 func Mult(a, b int) int {
 	return a * b
+}
+
+//export CgoExportedFunction PASS
+func CgoExportedFunction(a, b int) int {
+	return a + b
 }
 
 func noComment() {

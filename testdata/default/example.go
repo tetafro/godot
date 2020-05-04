@@ -1,4 +1,4 @@
-// Package comment without a period FAIL
+// Package comment without a period PASS
 package example
 
 /*
@@ -8,6 +8,8 @@ package example
 void myprint(char* s) {
 	printf("%d\n", s);
 }
+
+# PASS
 */
 import "C"
 import "unsafe"
@@ -17,7 +19,7 @@ import "unsafe"
 // #tag hashtag comment without period PASS
 
 /*
-Multiline comment without a period FAIL
+Multiline comment without a period PASS
 
 */
 
@@ -25,16 +27,16 @@ Multiline comment without a period FAIL
 Multiline comment with a period PASS.
 */
 
-/* One-line comment without a period FAIL */
+/* One-line comment without a period PASS */
 
 /* One-line comment with a period PASS. */
 
-// Single-line comment without a period FAIL
+// Single-line comment without a period PASS
 
 // Single-line comment with a period PASS.
 
 // Declaration comment without a period FAIL
-type ObjectX struct {
+type SimpleObject struct {
 	// Exported field comment - always PASS
 	Type string
 	// Unexported field comment - always PASS
@@ -42,9 +44,9 @@ type ObjectX struct {
 }
 
 // Declaration comment without a period, with an indented code example:
-//   co := ComplexObjectX{}
+//   co := ComplexObject{}
 //   fmt.Println(co) // PASS
-type ComplexObjectX struct {
+type ComplexObject struct {
 	// Exported field comment - always PASS
 	Type string
 	// Unexported field comment - always PASS
@@ -52,16 +54,16 @@ type ComplexObjectX struct {
 }
 
 // Declaration comment without a period, with a mixed indented code example:
-// 	co := MessageX{}
+// 	co := Message{}
 // 	fmt.Println(co) // PASS
-type MessageX struct {
+type Message struct {
 	Type string
 }
 
 // Declaration multiline comment
 // second line
 // third line with a period PASS.
-func SumX(a, b int) int {
+func Sum(a, b int) int {
 	// Inner comment - always PASS
 	a++
 	b++
@@ -72,11 +74,16 @@ func SumX(a, b int) int {
 // Declaration multiline comment
 // second line
 // third line without a period FAIL
-func MultX(a, b int) int {
+func Mult(a, b int) int {
 	return a * b
 }
 
-func noCommentX() {
+//export CgoExportedFunction PASS
+func CgoExportedFunction(a, b int) int {
+	return a + b
+}
+
+func noComment() {
 	cs := C.CString("Hello from stdio\n")
 	C.myprint(cs)
 	C.free(unsafe.Pointer(cs))

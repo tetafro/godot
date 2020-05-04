@@ -107,6 +107,12 @@ func TestCheckComment(t *testing.T) {
 			line:    0,
 		},
 		{
+			name:    "singleline comment: cgo exported function",
+			comment: "//export FuncName",
+			ok:      true,
+			line:    0,
+		},
+		{
 			name:    "singleline comment: url at the end of line",
 			comment: "// Read more: http://example.com/",
 			ok:      true,
@@ -227,7 +233,7 @@ func TestCheckComment(t *testing.T) {
 
 func TestIntegration(t *testing.T) {
 	t.Run("default check", func(t *testing.T) {
-		var testFile = filepath.Join("testdata", "example_default.go")
+		var testFile = filepath.Join("testdata", "default", "example.go")
 		expected, err := readTestFile(testFile)
 		if err != nil {
 			t.Fatalf("Failed to read test file %s: %v", testFile, err)
@@ -254,7 +260,7 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("check all", func(t *testing.T) {
-		var testFile = filepath.Join("testdata", "example_checkall.go")
+		var testFile = filepath.Join("testdata", "checkall", "example.go")
 		expected, err := readTestFile(testFile)
 		if err != nil {
 			t.Fatalf("Failed to read test file %s: %v", testFile, err)

@@ -23,13 +23,7 @@ Build from source
 go get -u github.com/tetafro/godot/cmd/godot
 ```
 
-Or download binary from [releases page](https://github.com/tetafro/godot/releases)
-like this
-```sh
-version=0.3.6
-platform=linux_amd64
-curl -L https://github.com/tetafro/godot/releases/download/v${version}/godot_${version}_${platform}.tar.gz | tar xzf - -C $GOPATH/bin
-```
+or download binary from [releases page](https://github.com/tetafro/godot/releases).
 
 Run
 ```sh
