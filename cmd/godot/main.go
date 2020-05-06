@@ -12,7 +12,7 @@ import (
 	"github.com/tetafro/godot"
 )
 
-// version is the application vesion. Set to latest git tag on `make build`.
+// version is the application version. Set to latest git tag on `make build`.
 var version = "dev"
 
 const usage = `Usage:
@@ -30,7 +30,7 @@ func main() {
 		fmt.Println(usage)
 		os.Exit(0)
 	}
-	if os.Args[1] == "-v" || os.Args[1] == "--vesion" {
+	if os.Args[1] == "-v" || os.Args[1] == "--version" {
 		fmt.Println(version)
 		os.Exit(0)
 	}
