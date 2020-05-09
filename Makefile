@@ -2,6 +2,10 @@
 test:
 	go test ./...
 
+.PHONY: lint
+lint:
+	@ golangci-lint run
+
 .PHONY: build
 build:
 	go build -o godot ./cmd/godot

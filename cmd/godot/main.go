@@ -24,7 +24,7 @@ Options:
 
 func main() {
 	if len(os.Args) < 2 {
-		fatal(usage)
+		fatalf(usage)
 	}
 	if os.Args[1] == "-h" || os.Args[1] == "--help" {
 		fmt.Println(usage)
@@ -35,14 +35,14 @@ func main() {
 		os.Exit(0)
 	}
 	if strings.HasPrefix(os.Args[1], "-") && os.Args[1] != "-a" && os.Args[1] == "--all" {
-		fatal("Unknown flag")
+		fatalf("Unknown flag")
 	}
 
 	var settings godot.Settings
 	input := os.Args[1:]
 	if os.Args[1] == "-a" || os.Args[1] == "--all" {
 		if len(os.Args) < 3 {
-			fatal(usage)
+			fatalf(usage)
 		}
 		settings.CheckAll = true
 		input = os.Args[2:]
@@ -53,12 +53,12 @@ func main() {
 
 	for _, path := range input {
 		if _, err := os.Stat(path); os.IsNotExist(err) {
-			fatal("Path %s does not exist", path)
+			fatalf("Path %s does not exist", path)
 		}
 		for f := range findFiles(path) {
 			file, err := parser.ParseFile(fset, f, nil, parser.ParseComments)
 			if err != nil {
-				fatal("Failed to parse file %s: %v", path, err)
+				fatalf("Failed to parse file %s: %v", path, err)
 			}
 			files = append(files, file)
 		}
@@ -88,14 +88,14 @@ func findFiles(root string) chan string {
 			return nil
 		})
 		if err != nil {
-			fatal("Failed to get files from directory: %v", err)
+			fatalf("Failed to get files from directory: %v", err)
 		}
 	}()
 
 	return out
 }
 
-func fatal(format string, args ...interface{}) {
+func fatalf(format string, args ...interface{}) {
 	fmt.Printf(format+"\n", args...)
 	os.Exit(1)
 }
