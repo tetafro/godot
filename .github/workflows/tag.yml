@@ -2,12 +2,11 @@ on:
   push:
     tags: ['*']
 
-name: Release
+name: Release a tag
 
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
-
     steps:
       - name: Install Go
         uses: actions/setup-go@v1
