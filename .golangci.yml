@@ -48,6 +48,10 @@ linters:
     - unparam
     - whitespace
 
+linters-settings:
+  godot:
+    check-all: true
+
 issues:
   exclude-use-default: false
   exclude-rules:
