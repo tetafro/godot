@@ -245,16 +245,16 @@ func TestIntegration(t *testing.T) {
 			t.Fatalf("Failed to parse file %s: %v", testFile, err)
 		}
 
-		msgs := Run(file, fset, Settings{CheckAll: false})
-		if len(msgs) != len(expected) {
-			t.Fatalf("Invalid number of result messages\n  expected: %d\n       got: %d",
-				len(expected), len(msgs))
+		issues := Run(file, fset, Settings{CheckAll: false})
+		if len(issues) != len(expected) {
+			t.Fatalf("Invalid number of result issues\n  expected: %d\n       got: %d",
+				len(expected), len(issues))
 		}
-		for i := range msgs {
-			if msgs[i].Pos.Filename != expected[i].Pos.Filename ||
-				msgs[i].Pos.Line != expected[i].Pos.Line {
+		for i := range issues {
+			if issues[i].Pos.Filename != expected[i].Pos.Filename ||
+				issues[i].Pos.Line != expected[i].Pos.Line {
 				t.Fatalf("Unexpected position\n  expected %s\n       got %s",
-					expected[i].Pos, msgs[i].Pos)
+					expected[i].Pos, issues[i].Pos)
 			}
 		}
 	})
@@ -272,17 +272,17 @@ func TestIntegration(t *testing.T) {
 			t.Fatalf("Failed to parse file %s: %v", testFile, err)
 		}
 
-		msgs := Run(file, fset, Settings{CheckAll: true})
-		if len(msgs) != len(expected) {
-			t.Fatalf("Invalid number of result messages\n  expected: %d\n       got: %d",
-				len(expected), len(msgs))
+		issues := Run(file, fset, Settings{CheckAll: true})
+		if len(issues) != len(expected) {
+			t.Fatalf("Invalid number of result issues\n  expected: %d\n       got: %d",
+				len(expected), len(issues))
 		}
-		for i := range msgs {
-			if msgs[i].Pos.Filename != expected[i].Pos.Filename ||
-				msgs[i].Pos.Line != expected[i].Pos.Line {
+		for i := range issues {
+			if issues[i].Pos.Filename != expected[i].Pos.Filename ||
+				issues[i].Pos.Line != expected[i].Pos.Line {
 				t.Fatalf("Unexpected position\n  expected %d:%d\n       got %d:%d",
 					expected[i].Pos.Line, expected[i].Pos.Column,
-					msgs[i].Pos.Line, msgs[i].Pos.Column,
+					issues[i].Pos.Line, issues[i].Pos.Column,
 				)
 			}
 		}
@@ -290,16 +290,16 @@ func TestIntegration(t *testing.T) {
 }
 
 // readTestFile reads comments from file. If comment contains "PASS",
-// it should not be among error messages. If comment contains "FAIL",
-// it should be among error messages.
-func readTestFile(file string) ([]Message, error) {
+// it should not be among issues. If comment contains "FAIL", it should
+// be among error issues.
+func readTestFile(file string) ([]Issue, error) {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, file, nil, parser.ParseComments)
 	if err != nil {
 		return nil, err
 	}
 
-	var msgs []Message
+	var issues []Issue
 	for _, group := range f.Comments {
 		if group == nil || len(group.List) == 0 {
 			continue
@@ -313,7 +313,7 @@ func readTestFile(file string) ([]Message, error) {
 				if strings.Contains(line, "FAIL") {
 					pos := fset.Position(com.Slash)
 					pos.Line += i
-					msgs = append(msgs, Message{
+					issues = append(issues, Issue{
 						Pos:     pos,
 						Message: noPeriodMessage,
 					})
@@ -321,5 +321,5 @@ func readTestFile(file string) ([]Message, error) {
 			}
 		}
 	}
-	return msgs, nil
+	return issues, nil
 }

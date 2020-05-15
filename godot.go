@@ -11,8 +11,8 @@ import (
 
 const noPeriodMessage = "Top level comment should end in a period"
 
-// Message contains a message of linting error.
-type Message struct {
+// Issue contains a message of linting error.
+type Issue struct {
 	Pos     token.Position
 	Message string
 }
@@ -38,43 +38,43 @@ var (
 )
 
 // Run runs this linter on the provided code.
-func Run(file *ast.File, fset *token.FileSet, settings Settings) []Message {
-	msgs := []Message{}
+func Run(file *ast.File, fset *token.FileSet, settings Settings) []Issue {
+	issues := []Issue{}
 
 	// Check all top-level comments
 	if settings.CheckAll {
 		for _, group := range file.Comments {
-			if ok, msg := check(fset, group); !ok {
-				msgs = append(msgs, msg)
+			if ok, iss := check(fset, group); !ok {
+				issues = append(issues, iss)
 			}
 		}
-		return msgs
+		return issues
 	}
 
 	// Check only declaration comments
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {
 		case *ast.GenDecl:
-			if ok, msg := check(fset, d.Doc); !ok {
-				msgs = append(msgs, msg)
+			if ok, iss := check(fset, d.Doc); !ok {
+				issues = append(issues, iss)
 			}
 		case *ast.FuncDecl:
-			if ok, msg := check(fset, d.Doc); !ok {
-				msgs = append(msgs, msg)
+			if ok, iss := check(fset, d.Doc); !ok {
+				issues = append(issues, iss)
 			}
 		}
 	}
-	return msgs
+	return issues
 }
 
-func check(fset *token.FileSet, group *ast.CommentGroup) (ok bool, msg Message) {
+func check(fset *token.FileSet, group *ast.CommentGroup) (ok bool, iss Issue) {
 	if group == nil || len(group.List) == 0 {
-		return true, Message{}
+		return true, Issue{}
 	}
 
 	// Check only top-level comments
 	if fset.Position(group.Pos()).Column > 1 {
-		return true, Message{}
+		return true, Issue{}
 	}
 
 	// Get last element from comment group - it can be either
@@ -84,11 +84,11 @@ func check(fset *token.FileSet, group *ast.CommentGroup) (ok bool, msg Message) 
 
 	line, ok := checkComment(last.Text)
 	if ok {
-		return true, Message{}
+		return true, Issue{}
 	}
 	pos := fset.Position(last.Slash)
 	pos.Line += line
-	return false, Message{
+	return false, Issue{
 		Pos:     pos,
 		Message: noPeriodMessage,
 	}
