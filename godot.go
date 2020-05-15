@@ -44,7 +44,7 @@ func Run(file *ast.File, fset *token.FileSet, settings Settings) []Issue {
 	// Check all top-level comments
 	if settings.CheckAll {
 		for _, group := range file.Comments {
-			if ok, iss := check(fset, group); !ok {
+			if iss, ok := check(fset, group); !ok {
 				issues = append(issues, iss)
 			}
 		}
@@ -55,11 +55,11 @@ func Run(file *ast.File, fset *token.FileSet, settings Settings) []Issue {
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {
 		case *ast.GenDecl:
-			if ok, iss := check(fset, d.Doc); !ok {
+			if iss, ok := check(fset, d.Doc); !ok {
 				issues = append(issues, iss)
 			}
 		case *ast.FuncDecl:
-			if ok, iss := check(fset, d.Doc); !ok {
+			if iss, ok := check(fset, d.Doc); !ok {
 				issues = append(issues, iss)
 			}
 		}
@@ -67,14 +67,14 @@ func Run(file *ast.File, fset *token.FileSet, settings Settings) []Issue {
 	return issues
 }
 
-func check(fset *token.FileSet, group *ast.CommentGroup) (ok bool, iss Issue) {
+func check(fset *token.FileSet, group *ast.CommentGroup) (iss Issue, ok bool) {
 	if group == nil || len(group.List) == 0 {
-		return true, Issue{}
+		return Issue{}, true
 	}
 
 	// Check only top-level comments
 	if fset.Position(group.Pos()).Column > 1 {
-		return true, Issue{}
+		return Issue{}, true
 	}
 
 	// Get last element from comment group - it can be either
@@ -84,14 +84,13 @@ func check(fset *token.FileSet, group *ast.CommentGroup) (ok bool, iss Issue) {
 
 	line, ok := checkComment(last.Text)
 	if ok {
-		return true, Issue{}
+		return Issue{}, true
 	}
 	pos := fset.Position(last.Slash)
 	pos.Line += line
-	return false, Issue{
-		Pos:     pos,
-		Message: noPeriodMessage,
-	}
+	iss.Pos = pos
+	iss.Message = noPeriodMessage
+	return iss, false
 }
 
 func checkComment(comment string) (line int, ok bool) {
