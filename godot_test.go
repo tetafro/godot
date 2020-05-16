@@ -234,6 +234,59 @@ func TestCheckComment(t *testing.T) {
 	}
 }
 
+func TestMakeReplacement(t *testing.T) {
+	testCases := []struct {
+		name        string
+		comment     string
+		pos         position
+		replacement string
+	}{
+		{
+			name:        "singleline comment",
+			comment:     "// Hello, world",
+			pos:         position{line: 0, column: 15},
+			replacement: "// Hello, world.",
+		},
+		{
+			name:        "short singleline comment",
+			comment:     "//x",
+			pos:         position{line: 0, column: 3},
+			replacement: "//x.",
+		},
+		{
+			name:        "multiline comment",
+			comment:     "/*\n" + "Hello, world\n" + "*/",
+			pos:         position{line: 1, column: 12},
+			replacement: "Hello, world.",
+		},
+		{
+			name:        "short multiline comment",
+			comment:     "/*\n" + "x\n" + "*/",
+			pos:         position{line: 1, column: 1},
+			replacement: "x.",
+		},
+		{
+			name:        "multiline comment in one line",
+			comment:     "/* Hello, world */",
+			pos:         position{line: 0, column: 15},
+			replacement: "/* Hello, world. */",
+		},
+	}
+
+	for _, tt := range testCases {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			replacement := makeReplacement(tt.comment, tt.pos)
+			if replacement != tt.replacement {
+				t.Fatalf(
+					"Wrong replacement\n  expected: %s\n       got: %s",
+					tt.replacement, replacement,
+				)
+			}
+		})
+	}
+}
+
 func TestIntegration(t *testing.T) {
 	t.Run("default check", func(t *testing.T) {
 		var testFile = filepath.Join("testdata", "default", "example.go")

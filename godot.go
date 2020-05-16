@@ -19,8 +19,9 @@ type Settings struct {
 
 // Issue contains a description of linting error and a possible replacement.
 type Issue struct {
-	Pos     token.Position
-	Message string
+	Pos         token.Position
+	Message     string
+	Replacement string
 }
 
 // position is an position inside a comment (might be multiline comment).
@@ -95,8 +96,11 @@ func check(fset *token.FileSet, group *ast.CommentGroup) (iss Issue, ok bool) {
 	pos := fset.Position(last.Slash)
 	pos.Line += p.line
 	pos.Column = p.column
-	iss.Pos = pos
-	iss.Message = noPeriodMessage
+	iss = Issue{
+		Pos:         pos,
+		Message:     noPeriodMessage,
+		Replacement: makeReplacement(last.Text, p),
+	}
 	return iss, false
 }
 
@@ -166,4 +170,25 @@ func checkLastChar(s string) bool {
 		}
 	}
 	return false
+}
+
+// makeReplacement basically just inserts a period into comment on
+// the given position.
+func makeReplacement(s string, pos position) string {
+	lines := strings.Split(s, "\n")
+	if len(lines) < pos.line {
+		// This should never happen
+		return ""
+	}
+	line := []rune(lines[pos.line])
+	if len(line) < pos.column {
+		// This should never happen
+		return ""
+	}
+	// Insert a period
+	newline := append(
+		line[:pos.column],
+		append([]rune{'.'}, line[pos.column:]...)...,
+	)
+	return string(newline)
 }
