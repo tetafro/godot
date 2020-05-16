@@ -11,10 +11,17 @@ import (
 
 const noPeriodMessage = "Top level comment should end in a period"
 
-// Issue contains a message of linting error.
+// Issue contains a description of linting error and a possible replacement.
 type Issue struct {
 	Pos     token.Position
 	Message string
+}
+
+// issue is an intermediate representation of linting error. It is local
+// for one comment line/multiline comment group.
+type issue struct {
+	line   int
+	column int
 }
 
 // Settings contains linter settings.
@@ -82,28 +89,33 @@ func check(fset *token.FileSet, group *ast.CommentGroup) (iss Issue, ok bool) {
 	// for "/*"-comment
 	last := group.List[len(group.List)-1]
 
-	line, ok := checkComment(last.Text)
+	i, ok := checkComment(last.Text)
 	if ok {
 		return Issue{}, true
 	}
 	pos := fset.Position(last.Slash)
-	pos.Line += line
+	pos.Line += i.line
+	pos.Column = i.column
 	iss.Pos = pos
 	iss.Message = noPeriodMessage
 	return iss, false
 }
 
-func checkComment(comment string) (line int, ok bool) {
+func checkComment(comment string) (iss issue, ok bool) {
 	// Check last line of "//"-comment
 	if strings.HasPrefix(comment, "//") {
+		iss.column = len(comment)
 		comment = strings.TrimPrefix(comment, "//")
-		return 0, checkLastChar(comment)
+		if checkLastChar(comment) {
+			return issue{}, true
+		}
+		return iss, false
 	}
 
 	// Skip cgo code blocks
-	// TODO: Find a better way to detect cgo code.
+	// TODO: Find a better way to detect cgo code
 	if strings.Contains(comment, "#include") || strings.Contains(comment, "#define") {
-		return 0, true
+		return issue{}, true
 	}
 
 	// Check last non-empty line in multiline "/*"-comment block
@@ -115,9 +127,17 @@ func checkComment(comment string) (line int, ok bool) {
 		}
 		break
 	}
-	comment = strings.TrimPrefix(lines[i], "/*")
+	iss.line = i
+	comment = lines[i]
 	comment = strings.TrimSuffix(comment, "*/")
-	return i, checkLastChar(comment)
+	comment = strings.TrimRight(comment, " ")
+	iss.column = len(comment) // last non-space char in comment line
+	comment = strings.TrimPrefix(comment, "/*")
+
+	if checkLastChar(comment) {
+		return issue{}, true
+	}
+	return iss, false
 }
 
 func checkLastChar(s string) bool {
