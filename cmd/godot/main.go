@@ -19,13 +19,17 @@ const usage = `Usage:
     godot [OPTION] [FILES]
 Options:
 	-a, --all       check all top-level comments (not only declarations)
+	-f, --fix       fix issues, and print fixed version to stdout
 	-h, --help      show this message
-	-v, --version   show version`
+	-v, --version   show version
+	-w, --write     fix issues, and write result to original file`
 
 type arguments struct {
 	help    bool
 	version bool
 	all     bool
+	fix     bool
+	write   bool
 	files   []string
 }
 
@@ -69,9 +73,22 @@ func main() {
 	}
 
 	for i := range files {
-		issues := godot.Run(files[i], fset, settings)
-		for _, iss := range issues {
-			fmt.Printf("%s: %s\n", iss.Message, iss.Pos)
+		switch {
+		case args.fix:
+			fixed, err := godot.Fix(args.files[i], files[i], fset, settings)
+			if err != nil {
+				fatalf("Failed to autofix file '%s': %v", args.files[i], err)
+			}
+			fmt.Print(string(fixed))
+		case args.write:
+			if err := godot.Replace(args.files[i], files[i], fset, settings); err != nil {
+				fatalf("Failed to rewrite file '%s': %v", args.files[i], err)
+			}
+		default:
+			issues := godot.Run(files[i], fset, settings)
+			for _, iss := range issues {
+				fmt.Printf("%s: %s\n", iss.Message, iss.Pos)
+			}
 		}
 	}
 }
@@ -94,6 +111,10 @@ func readArgs() (args arguments, err error) {
 			args.version = true
 		case "-a", "--all":
 			args.all = true
+		case "-f", "--fix":
+			args.fix = true
+		case "-w", "--write":
+			args.write = true
 		default:
 			return arguments{}, fmt.Errorf("unknown flag '%s'", arg)
 		}

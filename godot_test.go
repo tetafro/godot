@@ -3,6 +3,7 @@ package godot
 import (
 	"go/parser"
 	"go/token"
+	"io/ioutil"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -287,9 +288,9 @@ func TestMakeReplacement(t *testing.T) {
 	}
 }
 
-func TestIntegration(t *testing.T) {
+func TestRunIntegration(t *testing.T) {
 	t.Run("default check", func(t *testing.T) {
-		var testFile = filepath.Join("testdata", "default", "example.go")
+		var testFile = filepath.Join("testdata", "default", "check", "main.go")
 		expected, err := readTestFile(testFile)
 		if err != nil {
 			t.Fatalf("Failed to read test file %s: %v", testFile, err)
@@ -316,7 +317,7 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("check all", func(t *testing.T) {
-		var testFile = filepath.Join("testdata", "checkall", "example.go")
+		var testFile = filepath.Join("testdata", "checkall", "check", "main.go")
 		expected, err := readTestFile(testFile)
 		if err != nil {
 			t.Fatalf("Failed to read test file %s: %v", testFile, err)
@@ -340,6 +341,76 @@ func TestIntegration(t *testing.T) {
 					expected[i].Pos.Line, expected[i].Pos.Column,
 					issues[i].Pos.Line, issues[i].Pos.Column,
 				)
+			}
+		}
+	})
+}
+
+func TestFixIntegration(t *testing.T) {
+	t.Run("default check", func(t *testing.T) {
+		var testFile = filepath.Join("testdata", "default", "check", "main.go")
+		var expectedFile = filepath.Join("testdata", "default", "result", "main.go")
+		expected, err := ioutil.ReadFile(expectedFile) // nolint: gosec
+		if err != nil {
+			t.Fatalf("Failed to read test file %s: %v", expected, err)
+		}
+
+		fset := token.NewFileSet()
+		file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
+		if err != nil {
+			t.Fatalf("Failed to parse file %s: %v", testFile, err)
+		}
+
+		fixed, err := Fix(testFile, file, fset, Settings{CheckAll: false})
+
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
+		fixedLines := strings.Split(string(fixed), "\n")
+		expectedLines := strings.Split(string(expected), "\n")
+		if len(fixedLines) != len(expectedLines) {
+			t.Fatalf("Invalid number of result lines\n  expected: %d\n       got: %d",
+				len(expectedLines), len(fixedLines))
+		}
+		for i := range fixedLines {
+			if fixedLines[i] != expectedLines[i] {
+				t.Fatalf("Wrong line %d in fixed file\n  expected: %s\n       got: %s",
+					i, expectedLines[i], fixedLines[i])
+			}
+		}
+	})
+
+	t.Run("check all", func(t *testing.T) {
+		var testFile = filepath.Join("testdata", "checkall", "check", "main.go")
+		var expectedFile = filepath.Join("testdata", "checkall", "result", "main.go")
+		expected, err := ioutil.ReadFile(expectedFile) // nolint: gosec
+		if err != nil {
+			t.Fatalf("Failed to read test file %s: %v", expected, err)
+		}
+
+		fset := token.NewFileSet()
+		file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
+		if err != nil {
+			t.Fatalf("Failed to parse file %s: %v", testFile, err)
+		}
+
+		fixed, err := Fix(testFile, file, fset, Settings{CheckAll: true})
+
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
+		fixedLines := strings.Split(string(fixed), "\n")
+		expectedLines := strings.Split(string(expected), "\n")
+		if len(fixedLines) != len(expectedLines) {
+			t.Fatalf("Invalid number of result lines\n  expected: %d\n       got: %d",
+				len(expectedLines), len(fixedLines))
+		}
+		for i := range fixedLines {
+			if fixedLines[i] != expectedLines[i] {
+				t.Fatalf("Wrong line %d in fixed file\n  expected: %s\n       got: %s",
+					i, expectedLines[i], fixedLines[i])
 			}
 		}
 	})

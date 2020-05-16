@@ -57,6 +57,7 @@ issues:
   exclude-rules:
     - path: _test\.go
       linters:
+        - dupl
         - funlen
     - path: cmd/godot/main\.go
       linters:

@@ -3,8 +3,11 @@
 package godot
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
+	"io/ioutil"
+	"os"
 	"regexp"
 	"strings"
 )
@@ -72,6 +75,58 @@ func Run(file *ast.File, fset *token.FileSet, settings Settings) []Issue {
 		}
 	}
 	return issues
+}
+
+// Fix fixes all issues and return new version of file content.
+func Fix(path string, file *ast.File, fset *token.FileSet, settings Settings) ([]byte, error) {
+	// Read file
+	content, err := ioutil.ReadFile(path) // nolint: gosec
+	if err != nil {
+		return nil, fmt.Errorf("read file: %v", err)
+	}
+	if len(content) == 0 {
+		return nil, nil
+	}
+
+	issues := Run(file, fset, settings)
+
+	// slice -> map
+	m := map[int]Issue{}
+	for _, iss := range issues {
+		m[iss.Pos.Line] = iss
+	}
+
+	// Replace lines from issues
+	fixed := make([]byte, 0, len(content))
+	for i, line := range strings.Split(string(content), "\n") {
+		newline := line
+		if iss, ok := m[i+1]; ok {
+			newline = iss.Replacement
+		}
+		fixed = append(fixed, []byte(newline+"\n")...)
+	}
+	fixed = fixed[:len(fixed)-1] // trim last "\n"
+
+	return fixed, nil
+}
+
+// Replace rewrites original file with it's fixed version.
+func Replace(path string, file *ast.File, fset *token.FileSet, settings Settings) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("check file: %v", err)
+	}
+	mode := info.Mode()
+
+	fixed, err := Fix(path, file, fset, settings)
+	if err != nil {
+		return fmt.Errorf("fix issues: %v", err)
+	}
+
+	if err := ioutil.WriteFile(path, fixed, mode); err != nil {
+		return fmt.Errorf("write file: %v", err)
+	}
+	return nil
 }
 
 func check(fset *token.FileSet, group *ast.CommentGroup) (iss Issue, ok bool) {
