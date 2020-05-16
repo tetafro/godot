@@ -11,23 +11,22 @@ import (
 
 const noPeriodMessage = "Top level comment should end in a period"
 
+// Settings contains linter settings.
+type Settings struct {
+	// Check all top-level comments, not only declarations
+	CheckAll bool
+}
+
 // Issue contains a description of linting error and a possible replacement.
 type Issue struct {
 	Pos     token.Position
 	Message string
 }
 
-// issue is an intermediate representation of linting error. It is local
-// for one comment line/multiline comment group.
-type issue struct {
+// position is an position inside a comment (might be multiline comment).
+type position struct {
 	line   int
 	column int
-}
-
-// Settings contains linter settings.
-type Settings struct {
-	// Check all top-level comments, not only declarations
-	CheckAll bool
 }
 
 var (
@@ -89,33 +88,33 @@ func check(fset *token.FileSet, group *ast.CommentGroup) (iss Issue, ok bool) {
 	// for "/*"-comment
 	last := group.List[len(group.List)-1]
 
-	i, ok := checkComment(last.Text)
+	p, ok := checkComment(last.Text)
 	if ok {
 		return Issue{}, true
 	}
 	pos := fset.Position(last.Slash)
-	pos.Line += i.line
-	pos.Column = i.column
+	pos.Line += p.line
+	pos.Column = p.column
 	iss.Pos = pos
 	iss.Message = noPeriodMessage
 	return iss, false
 }
 
-func checkComment(comment string) (iss issue, ok bool) {
+func checkComment(comment string) (pos position, ok bool) {
 	// Check last line of "//"-comment
 	if strings.HasPrefix(comment, "//") {
-		iss.column = len(comment)
+		pos.column = len(comment)
 		comment = strings.TrimPrefix(comment, "//")
 		if checkLastChar(comment) {
-			return issue{}, true
+			return position{}, true
 		}
-		return iss, false
+		return pos, false
 	}
 
 	// Skip cgo code blocks
 	// TODO: Find a better way to detect cgo code
 	if strings.Contains(comment, "#include") || strings.Contains(comment, "#define") {
-		return issue{}, true
+		return position{}, true
 	}
 
 	// Check last non-empty line in multiline "/*"-comment block
@@ -127,17 +126,17 @@ func checkComment(comment string) (iss issue, ok bool) {
 		}
 		break
 	}
-	iss.line = i
+	pos.line = i
 	comment = lines[i]
 	comment = strings.TrimSuffix(comment, "*/")
 	comment = strings.TrimRight(comment, " ")
-	iss.column = len(comment) // last non-space char in comment line
+	pos.column = len(comment) // last non-space char in comment line
 	comment = strings.TrimPrefix(comment, "/*")
 
 	if checkLastChar(comment) {
-		return issue{}, true
+		return position{}, true
 	}
-	return iss, false
+	return pos, false
 }
 
 func checkLastChar(s string) bool {
