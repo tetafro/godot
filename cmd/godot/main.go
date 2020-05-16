@@ -56,6 +56,7 @@ func main() {
 		settings.CheckAll = true
 	}
 
+	var paths []string
 	var files []*ast.File
 	fset := token.NewFileSet()
 
@@ -69,20 +70,21 @@ func main() {
 				fatalf("Failed to parse file '%s': %v", path, err)
 			}
 			files = append(files, file)
+			paths = append(paths, f)
 		}
 	}
 
 	for i := range files {
 		switch {
 		case args.fix:
-			fixed, err := godot.Fix(args.files[i], files[i], fset, settings)
+			fixed, err := godot.Fix(paths[i], files[i], fset, settings)
 			if err != nil {
-				fatalf("Failed to autofix file '%s': %v", args.files[i], err)
+				fatalf("Failed to autofix file '%s': %v", paths[i], err)
 			}
 			fmt.Print(string(fixed))
 		case args.write:
-			if err := godot.Replace(args.files[i], files[i], fset, settings); err != nil {
-				fatalf("Failed to rewrite file '%s': %v", args.files[i], err)
+			if err := godot.Replace(paths[i], files[i], fset, settings); err != nil {
+				fatalf("Failed to rewrite file '%s': %v", paths[i], err)
 			}
 		default:
 			issues := godot.Run(files[i], fset, settings)
