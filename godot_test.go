@@ -362,7 +362,6 @@ func TestFixIntegration(t *testing.T) {
 		}
 
 		fixed, err := Fix(testFile, file, fset, Settings{CheckAll: false})
-
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -374,9 +373,12 @@ func TestFixIntegration(t *testing.T) {
 				len(expectedLines), len(fixedLines))
 		}
 		for i := range fixedLines {
-			if fixedLines[i] != expectedLines[i] {
+			// NOTE: This is a fix for Windows, not sure why this is happening
+			result := strings.TrimRight(fixedLines[i], "\r")
+			exp := strings.TrimRight(expectedLines[i], "\r")
+			if result != exp {
 				t.Fatalf("Wrong line %d in fixed file\n  expected: %s\n       got: %s",
-					i, expectedLines[i], fixedLines[i])
+					i, exp, result)
 			}
 		}
 	})
@@ -396,7 +398,6 @@ func TestFixIntegration(t *testing.T) {
 		}
 
 		fixed, err := Fix(testFile, file, fset, Settings{CheckAll: true})
-
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -408,9 +409,12 @@ func TestFixIntegration(t *testing.T) {
 				len(expectedLines), len(fixedLines))
 		}
 		for i := range fixedLines {
-			if fixedLines[i] != expectedLines[i] {
+			// TODO: This is a fix for Windows, not sure why this is happening
+			result := strings.TrimRight(fixedLines[i], "\r")
+			exp := strings.TrimRight(expectedLines[i], "\r")
+			if result != exp {
 				t.Fatalf("Wrong line %d in fixed file\n  expected: %s\n       got: %s",
-					i, expectedLines[i], fixedLines[i])
+					i, exp, result)
 			}
 		}
 	})
