@@ -119,6 +119,18 @@ func TestCheckComment(t *testing.T) {
 			ok:      true,
 			pos:     position{},
 		},
+		{
+			name:    "singleline comment: cyrillic, with period",
+			comment: "// Кириллица.",
+			ok:      true,
+			pos:     position{},
+		},
+		{
+			name:    "singleline comment: cyrillic, without period",
+			comment: "// Кириллица",
+			ok:      false,
+			pos:     position{line: 0, column: 12},
+		},
 		// Multiline comments
 		{
 			name:    "multiline comment: ok",
@@ -212,9 +224,21 @@ func TestCheckComment(t *testing.T) {
 		},
 		{
 			name:    "multiline comment: url at the end of line",
-			comment: "/*\n" + "Read more: http://example.com/" + "*/",
+			comment: "/*\n" + "Read more: http://example.com/\n" + "*/",
 			ok:      true,
 			pos:     position{},
+		},
+		{
+			name:    "multiline comment: cyrillic, with period",
+			comment: "/*\n" + "Кириллица.\n" + "*/",
+			ok:      true,
+			pos:     position{},
+		},
+		{
+			name:    "multiline comment: cyrillic, without period",
+			comment: "/*\n" + "Кириллица\n" + "*/",
+			ok:      false,
+			pos:     position{line: 1, column: 9},
 		},
 	}
 
@@ -255,6 +279,12 @@ func TestMakeReplacement(t *testing.T) {
 			replacement: "//x.",
 		},
 		{
+			name:        "cyrillic singleline comment",
+			comment:     "// Привет, мир",
+			pos:         position{line: 0, column: 14},
+			replacement: "// Привет, мир.",
+		},
+		{
 			name:        "multiline comment",
 			comment:     "/*\n" + "Hello, world\n" + "*/",
 			pos:         position{line: 1, column: 12},
@@ -271,6 +301,12 @@ func TestMakeReplacement(t *testing.T) {
 			comment:     "/* Hello, world */",
 			pos:         position{line: 0, column: 15},
 			replacement: "/* Hello, world. */",
+		},
+		{
+			name:        "cyrillic multiline comment",
+			comment:     "/* Привет, мир */",
+			pos:         position{line: 0, column: 14},
+			replacement: "/* Привет, мир. */",
 		},
 	}
 

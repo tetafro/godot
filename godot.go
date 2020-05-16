@@ -162,7 +162,7 @@ func check(fset *token.FileSet, group *ast.CommentGroup) (iss Issue, ok bool) {
 func checkComment(comment string) (pos position, ok bool) {
 	// Check last line of "//"-comment
 	if strings.HasPrefix(comment, "//") {
-		pos.column = len(comment)
+		pos.column = len([]rune(comment)) // runes for non-latin chars
 		comment = strings.TrimPrefix(comment, "//")
 		if checkLastChar(comment) {
 			return position{}, true
@@ -189,7 +189,9 @@ func checkComment(comment string) (pos position, ok bool) {
 	comment = lines[i]
 	comment = strings.TrimSuffix(comment, "*/")
 	comment = strings.TrimRight(comment, " ")
-	pos.column = len(comment) // last non-space char in comment line
+	// Get position of the last non-space char in comment line, use runes
+	// in case of non-latin chars
+	pos.column = len([]rune(comment))
 	comment = strings.TrimPrefix(comment, "/*")
 
 	if checkLastChar(comment) {
@@ -238,6 +240,7 @@ func makeReplacement(s string, pos position) string {
 	line := []rune(lines[pos.line])
 	if len(line) < pos.column {
 		// This should never happen
+		println(s, len(line), pos.column)
 		return ""
 	}
 	// Insert a period

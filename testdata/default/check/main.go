@@ -83,6 +83,11 @@ func CgoExportedFunction(a, b int) int {
 	return a + b
 }
 
+// Кириллица FAIL
+func NonLatin() string {
+	return "привет, мир"
+}
+
 func noComment() {
 	cs := C.CString("Hello from stdio\n")
 	C.myprint(cs)
