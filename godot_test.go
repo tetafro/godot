@@ -308,6 +308,18 @@ func TestMakeReplacement(t *testing.T) {
 			pos:         position{line: 0, column: 14},
 			replacement: "/* Привет, мир. */",
 		},
+		{
+			name:        "invalid line",
+			comment:     "// Привет, мир",
+			pos:         position{line: 100, column: 0},
+			replacement: "// Привет, мир",
+		},
+		{
+			name:        "invalid column",
+			comment:     "// Привет, мир",
+			pos:         position{line: 0, column: 100},
+			replacement: "// Привет, мир",
+		},
 	}
 
 	for _, tt := range testCases {

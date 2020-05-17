@@ -235,13 +235,12 @@ func makeReplacement(s string, pos position) string {
 	lines := strings.Split(s, "\n")
 	if len(lines) < pos.line {
 		// This should never happen
-		return ""
+		return s
 	}
 	line := []rune(lines[pos.line])
 	if len(line) < pos.column {
 		// This should never happen
-		println(s, len(line), pos.column)
-		return ""
+		return s
 	}
 	// Insert a period
 	newline := append(
