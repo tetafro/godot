@@ -338,7 +338,7 @@ func TestMakeReplacement(t *testing.T) {
 
 func TestRunIntegration(t *testing.T) {
 	t.Run("default check", func(t *testing.T) {
-		var testFile = filepath.Join("testdata", "default", "check", "main.go")
+		var testFile = filepath.Join("testdata", "default", "in", "main.go")
 		expected, err := readTestFile(testFile)
 		if err != nil {
 			t.Fatalf("Failed to read test file %s: %v", testFile, err)
@@ -365,7 +365,7 @@ func TestRunIntegration(t *testing.T) {
 	})
 
 	t.Run("check all", func(t *testing.T) {
-		var testFile = filepath.Join("testdata", "checkall", "check", "main.go")
+		var testFile = filepath.Join("testdata", "checkall", "in", "main.go")
 		expected, err := readTestFile(testFile)
 		if err != nil {
 			t.Fatalf("Failed to read test file %s: %v", testFile, err)
@@ -396,11 +396,11 @@ func TestRunIntegration(t *testing.T) {
 
 func TestFixIntegration(t *testing.T) {
 	t.Run("default check", func(t *testing.T) {
-		var testFile = filepath.Join("testdata", "default", "check", "main.go")
-		var expectedFile = filepath.Join("testdata", "default", "result", "main.go")
+		var testFile = filepath.Join("testdata", "default", "in", "main.go")
+		var expectedFile = filepath.Join("testdata", "default", "out", "main.go")
 		expected, err := ioutil.ReadFile(expectedFile) // nolint: gosec
 		if err != nil {
-			t.Fatalf("Failed to read test file %s: %v", expected, err)
+			t.Fatalf("Failed to read test file %s: %v", expectedFile, err)
 		}
 
 		fset := token.NewFileSet()
@@ -432,11 +432,11 @@ func TestFixIntegration(t *testing.T) {
 	})
 
 	t.Run("check all", func(t *testing.T) {
-		var testFile = filepath.Join("testdata", "checkall", "check", "main.go")
-		var expectedFile = filepath.Join("testdata", "checkall", "result", "main.go")
+		var testFile = filepath.Join("testdata", "checkall", "in", "main.go")
+		var expectedFile = filepath.Join("testdata", "checkall", "out", "main.go")
 		expected, err := ioutil.ReadFile(expectedFile) // nolint: gosec
 		if err != nil {
-			t.Fatalf("Failed to read test file %s: %v", expected, err)
+			t.Fatalf("Failed to read test file %s: %v", expectedFile, err)
 		}
 
 		fset := token.NewFileSet()
