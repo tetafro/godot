@@ -12,8 +12,8 @@ import (
 	"github.com/tetafro/godot"
 )
 
-// version is the application version. Set to latest git tag on `make build`.
-var version = "dev"
+// version is the application version. It is set to the latest git tag in CI.
+var version = "master"
 
 const usage = `Usage:
     godot [OPTION] [FILES]
