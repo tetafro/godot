@@ -338,241 +338,184 @@ func TestMakeReplacement(t *testing.T) {
 }
 
 func TestRunIntegration(t *testing.T) {
-	t.Run("default check", func(t *testing.T) {
-		var testFile = filepath.Join("testdata", "default", "in", "main.go")
-		expected, err := readTestFile(testFile)
-		if err != nil {
-			t.Fatalf("Failed to read test file %s: %v", testFile, err)
-		}
+	testCases := []struct {
+		name     string
+		fileIn   string
+		checkAll bool
+	}{
+		{
+			name:     "default check",
+			fileIn:   filepath.Join("testdata", "default", "in", "main.go"),
+			checkAll: false,
+		},
+		{
+			name:     "check all",
+			fileIn:   filepath.Join("testdata", "checkall", "in", "main.go"),
+			checkAll: true,
+		},
+	}
 
-		fset := token.NewFileSet()
-		file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
-		if err != nil {
-			t.Fatalf("Failed to parse file %s: %v", testFile, err)
-		}
-
-		issues := Run(file, fset, Settings{CheckAll: false})
-		if len(issues) != len(expected) {
-			t.Fatalf("Invalid number of result issues\n  expected: %d\n       got: %d",
-				len(expected), len(issues))
-		}
-		for i := range issues {
-			if issues[i].Pos.Filename != expected[i].Pos.Filename ||
-				issues[i].Pos.Line != expected[i].Pos.Line {
-				t.Fatalf("Unexpected position\n  expected %s\n       got %s",
-					expected[i].Pos, issues[i].Pos)
+	for _, tt := range testCases {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			expected, err := readTestFile(tt.fileIn)
+			if err != nil {
+				t.Fatalf("Failed to read test file %s: %v", tt.fileIn, err)
 			}
-		}
-	})
 
-	t.Run("check all", func(t *testing.T) {
-		var testFile = filepath.Join("testdata", "checkall", "in", "main.go")
-		expected, err := readTestFile(testFile)
-		if err != nil {
-			t.Fatalf("Failed to read test file %s: %v", testFile, err)
-		}
-
-		fset := token.NewFileSet()
-		file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
-		if err != nil {
-			t.Fatalf("Failed to parse file %s: %v", testFile, err)
-		}
-
-		issues := Run(file, fset, Settings{CheckAll: true})
-		if len(issues) != len(expected) {
-			t.Fatalf("Invalid number of result issues\n  expected: %d\n       got: %d",
-				len(expected), len(issues))
-		}
-		for i := range issues {
-			if issues[i].Pos.Filename != expected[i].Pos.Filename ||
-				issues[i].Pos.Line != expected[i].Pos.Line {
-				t.Fatalf("Unexpected position\n  expected %d:%d\n       got %d:%d",
-					expected[i].Pos.Line, expected[i].Pos.Column,
-					issues[i].Pos.Line, issues[i].Pos.Column,
-				)
+			fset := token.NewFileSet()
+			file, err := parser.ParseFile(fset, tt.fileIn, nil, parser.ParseComments)
+			if err != nil {
+				t.Fatalf("Failed to parse file %s: %v", tt.fileIn, err)
 			}
-		}
-	})
+
+			issues := Run(file, fset, Settings{CheckAll: tt.checkAll})
+			if len(issues) != len(expected) {
+				t.Fatalf("Invalid number of result issues\n  expected: %d\n       got: %d",
+					len(expected), len(issues))
+			}
+			for i := range issues {
+				if issues[i].Pos.Filename != expected[i].Pos.Filename ||
+					issues[i].Pos.Line != expected[i].Pos.Line {
+					t.Fatalf("Unexpected position\n  expected %s\n       got %s",
+						expected[i].Pos, issues[i].Pos)
+				}
+			}
+		})
+	}
 }
 
 func TestFixIntegration(t *testing.T) {
-	t.Run("default check", func(t *testing.T) {
-		var testFile = filepath.Join("testdata", "default", "in", "main.go")
-		var expectedFile = filepath.Join("testdata", "default", "out", "main.go")
-		expected, err := ioutil.ReadFile(expectedFile) // nolint: gosec
-		if err != nil {
-			t.Fatalf("Failed to read test file %s: %v", expectedFile, err)
-		}
+	testCases := []struct {
+		name     string
+		fileIn   string
+		fileOut  string
+		checkAll bool
+	}{
+		{
+			name:     "default check",
+			fileIn:   filepath.Join("testdata", "default", "in", "main.go"),
+			fileOut:  filepath.Join("testdata", "default", "out", "main.go"),
+			checkAll: false,
+		},
+		{
+			name:     "check all",
+			fileIn:   filepath.Join("testdata", "checkall", "in", "main.go"),
+			fileOut:  filepath.Join("testdata", "checkall", "out", "main.go"),
+			checkAll: true,
+		},
+	}
 
-		fset := token.NewFileSet()
-		file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
-		if err != nil {
-			t.Fatalf("Failed to parse file %s: %v", testFile, err)
-		}
-
-		fixed, err := Fix(testFile, file, fset, Settings{CheckAll: false})
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
-
-		fixedLines := strings.Split(string(fixed), "\n")
-		expectedLines := strings.Split(string(expected), "\n")
-		if len(fixedLines) != len(expectedLines) {
-			t.Fatalf("Invalid number of result lines\n  expected: %d\n       got: %d",
-				len(expectedLines), len(fixedLines))
-		}
-		for i := range fixedLines {
-			// NOTE: This is a fix for Windows, not sure why this is happening
-			result := strings.TrimRight(fixedLines[i], "\r")
-			exp := strings.TrimRight(expectedLines[i], "\r")
-			if result != exp {
-				t.Fatalf("Wrong line %d in fixed file\n  expected: %s\n       got: %s",
-					i, exp, result)
+	for _, tt := range testCases {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			expected, err := ioutil.ReadFile(tt.fileOut) // nolint: gosec
+			if err != nil {
+				t.Fatalf("Failed to read test file %s: %v", tt.fileOut, err)
 			}
-		}
-	})
 
-	t.Run("check all", func(t *testing.T) {
-		var testFile = filepath.Join("testdata", "checkall", "in", "main.go")
-		var expectedFile = filepath.Join("testdata", "checkall", "out", "main.go")
-		expected, err := ioutil.ReadFile(expectedFile) // nolint: gosec
-		if err != nil {
-			t.Fatalf("Failed to read test file %s: %v", expectedFile, err)
-		}
-
-		fset := token.NewFileSet()
-		file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
-		if err != nil {
-			t.Fatalf("Failed to parse file %s: %v", testFile, err)
-		}
-
-		fixed, err := Fix(testFile, file, fset, Settings{CheckAll: true})
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
-
-		fixedLines := strings.Split(string(fixed), "\n")
-		expectedLines := strings.Split(string(expected), "\n")
-		if len(fixedLines) != len(expectedLines) {
-			t.Fatalf("Invalid number of result lines\n  expected: %d\n       got: %d",
-				len(expectedLines), len(fixedLines))
-		}
-		for i := range fixedLines {
-			// TODO: This is a fix for Windows, not sure why this is happening
-			result := strings.TrimRight(fixedLines[i], "\r")
-			exp := strings.TrimRight(expectedLines[i], "\r")
-			if result != exp {
-				t.Fatalf("Wrong line %d in fixed file\n  expected: %s\n       got: %s",
-					i, exp, result)
+			fset := token.NewFileSet()
+			file, err := parser.ParseFile(fset, tt.fileIn, nil, parser.ParseComments)
+			if err != nil {
+				t.Fatalf("Failed to parse file %s: %v", tt.fileIn, err)
 			}
-		}
-	})
+
+			fixed, err := Fix(tt.fileIn, file, fset, Settings{CheckAll: tt.checkAll})
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+
+			fixedLines := strings.Split(string(fixed), "\n")
+			expectedLines := strings.Split(string(expected), "\n")
+			if len(fixedLines) != len(expectedLines) {
+				t.Fatalf("Invalid number of result lines\n  expected: %d\n       got: %d",
+					len(expectedLines), len(fixedLines))
+			}
+			for i := range fixedLines {
+				// NOTE: This is a fix for Windows, not sure why this is happening
+				result := strings.TrimRight(fixedLines[i], "\r")
+				exp := strings.TrimRight(expectedLines[i], "\r")
+				if result != exp {
+					t.Fatalf("Wrong line %d in fixed file\n  expected: %s\n       got: %s",
+						i, exp, result)
+				}
+			}
+		})
+	}
 }
 
 func TestReplaceIntegration(t *testing.T) {
-	t.Run("default check", func(t *testing.T) {
-		var testFile = filepath.Join("testdata", "default", "in", "main.go")
-		var expectedFile = filepath.Join("testdata", "default", "out", "main.go")
+	testCases := []struct {
+		name     string
+		fileIn   string
+		fileOut  string
+		checkAll bool
+	}{
+		{
+			name:     "default check",
+			fileIn:   filepath.Join("testdata", "default", "in", "main.go"),
+			fileOut:  filepath.Join("testdata", "default", "out", "main.go"),
+			checkAll: false,
+		},
+		{
+			name:     "check all",
+			fileIn:   filepath.Join("testdata", "checkall", "in", "main.go"),
+			fileOut:  filepath.Join("testdata", "checkall", "out", "main.go"),
+			checkAll: true,
+		},
+	}
 
-		info, err := os.Stat(testFile)
-		if err != nil {
-			t.Fatalf("Failed to check test file %s: %v", testFile, err)
-		}
-		mode := info.Mode()
-		original, err := ioutil.ReadFile(testFile) // nolint: gosec
-		if err != nil {
-			t.Fatalf("Failed to read test file %s: %v", testFile, err)
-		}
-		defer func() {
-			ioutil.WriteFile(testFile, original, mode) // nolint: errcheck,gosec
-		}()
-		expected, err := ioutil.ReadFile(expectedFile) // nolint: gosec
-		if err != nil {
-			t.Fatalf("Failed to read test file %s: %v", expectedFile, err)
-		}
-
-		fset := token.NewFileSet()
-		file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
-		if err != nil {
-			t.Fatalf("Failed to parse file %s: %v", testFile, err)
-		}
-
-		if err := Replace(testFile, file, fset, Settings{CheckAll: false}); err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
-		fixed, err := ioutil.ReadFile(testFile) // nolint: gosec
-		if err != nil {
-			t.Fatalf("Failed to read fixed file %s: %v", testFile, err)
-		}
-
-		fixedLines := strings.Split(string(fixed), "\n")
-		expectedLines := strings.Split(string(expected), "\n")
-		if len(fixedLines) != len(expectedLines) {
-			t.Fatalf("Invalid number of result lines\n  expected: %d\n       got: %d",
-				len(expectedLines), len(fixedLines))
-		}
-		for i := range fixedLines {
-			// NOTE: This is a fix for Windows, not sure why this is happening
-			result := strings.TrimRight(fixedLines[i], "\r")
-			exp := strings.TrimRight(expectedLines[i], "\r")
-			if result != exp {
-				t.Fatalf("Wrong line %d in fixed file\n  expected: %s\n       got: %s",
-					i, exp, result)
+	for _, tt := range testCases {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			info, err := os.Stat(tt.fileIn)
+			if err != nil {
+				t.Fatalf("Failed to check test file %s: %v", tt.fileIn, err)
 			}
-		}
-	})
-
-	t.Run("check all", func(t *testing.T) {
-		var testFile = filepath.Join("testdata", "checkall", "in", "main.go")
-		var expectedFile = filepath.Join("testdata", "checkall", "out", "main.go")
-
-		info, err := os.Stat(testFile)
-		if err != nil {
-			t.Fatalf("Failed to check test file %s: %v", testFile, err)
-		}
-		mode := info.Mode()
-		original, err := ioutil.ReadFile(testFile) // nolint: gosec
-		if err != nil {
-			t.Fatalf("Failed to read test file %s: %v", testFile, err)
-		}
-		defer func() {
-			ioutil.WriteFile(testFile, original, mode) // nolint: errcheck,gosec
-		}()
-		expected, err := ioutil.ReadFile(expectedFile) // nolint: gosec
-		if err != nil {
-			t.Fatalf("Failed to read test file %s: %v", expectedFile, err)
-		}
-
-		fset := token.NewFileSet()
-		file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
-		if err != nil {
-			t.Fatalf("Failed to parse file %s: %v", testFile, err)
-		}
-
-		if err := Replace(testFile, file, fset, Settings{CheckAll: true}); err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
-		fixed, err := ioutil.ReadFile(testFile) // nolint: gosec
-		if err != nil {
-			t.Fatalf("Failed to read fixed file %s: %v", testFile, err)
-		}
-
-		fixedLines := strings.Split(string(fixed), "\n")
-		expectedLines := strings.Split(string(expected), "\n")
-		if len(fixedLines) != len(expectedLines) {
-			t.Fatalf("Invalid number of result lines\n  expected: %d\n       got: %d",
-				len(expectedLines), len(fixedLines))
-		}
-		for i := range fixedLines {
-			// NOTE: This is a fix for Windows, not sure why this is happening
-			result := strings.TrimRight(fixedLines[i], "\r")
-			exp := strings.TrimRight(expectedLines[i], "\r")
-			if result != exp {
-				t.Fatalf("Wrong line %d in fixed file\n  expected: %s\n       got: %s",
-					i, exp, result)
+			mode := info.Mode()
+			original, err := ioutil.ReadFile(tt.fileIn) // nolint: gosec
+			if err != nil {
+				t.Fatalf("Failed to read test file %s: %v", tt.fileIn, err)
 			}
-		}
-	})
+			defer func() {
+				ioutil.WriteFile(tt.fileIn, original, mode) // nolint: errcheck,gosec
+			}()
+			expected, err := ioutil.ReadFile(tt.fileOut) // nolint: gosec
+			if err != nil {
+				t.Fatalf("Failed to read test file %s: %v", tt.fileOut, err)
+			}
+
+			fset := token.NewFileSet()
+			file, err := parser.ParseFile(fset, tt.fileIn, nil, parser.ParseComments)
+			if err != nil {
+				t.Fatalf("Failed to parse file %s: %v", tt.fileIn, err)
+			}
+
+			if err := Replace(tt.fileIn, file, fset, Settings{CheckAll: tt.checkAll}); err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			fixed, err := ioutil.ReadFile(tt.fileIn) // nolint: gosec
+			if err != nil {
+				t.Fatalf("Failed to read fixed file %s: %v", tt.fileIn, err)
+			}
+
+			fixedLines := strings.Split(string(fixed), "\n")
+			expectedLines := strings.Split(string(expected), "\n")
+			if len(fixedLines) != len(expectedLines) {
+				t.Fatalf("Invalid number of result lines\n  expected: %d\n       got: %d",
+					len(expectedLines), len(fixedLines))
+			}
+			for i := range fixedLines {
+				// NOTE: This is a fix for Windows, not sure why this is happening
+				result := strings.TrimRight(fixedLines[i], "\r")
+				exp := strings.TrimRight(expectedLines[i], "\r")
+				if result != exp {
+					t.Fatalf("Wrong line %d in fixed file\n  expected: %s\n       got: %s",
+						i, exp, result)
+				}
+			}
+		})
+	}
 }
 
 // readTestFile reads comments from file. If comment contains "PASS",
