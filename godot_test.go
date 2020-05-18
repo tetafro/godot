@@ -4,6 +4,7 @@ import (
 	"go/parser"
 	"go/token"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -458,6 +459,112 @@ func TestFixIntegration(t *testing.T) {
 		}
 		for i := range fixedLines {
 			// TODO: This is a fix for Windows, not sure why this is happening
+			result := strings.TrimRight(fixedLines[i], "\r")
+			exp := strings.TrimRight(expectedLines[i], "\r")
+			if result != exp {
+				t.Fatalf("Wrong line %d in fixed file\n  expected: %s\n       got: %s",
+					i, exp, result)
+			}
+		}
+	})
+}
+
+func TestReplaceIntegration(t *testing.T) {
+	t.Run("default check", func(t *testing.T) {
+		var testFile = filepath.Join("testdata", "default", "in", "main.go")
+		var expectedFile = filepath.Join("testdata", "default", "out", "main.go")
+
+		info, err := os.Stat(testFile)
+		if err != nil {
+			t.Fatalf("Failed to check test file %s: %v", testFile, err)
+		}
+		mode := info.Mode()
+		original, err := ioutil.ReadFile(testFile) // nolint: gosec
+		if err != nil {
+			t.Fatalf("Failed to read test file %s: %v", testFile, err)
+		}
+		defer func() {
+			ioutil.WriteFile(testFile, original, mode) // nolint: errcheck,gosec
+		}()
+		expected, err := ioutil.ReadFile(expectedFile) // nolint: gosec
+		if err != nil {
+			t.Fatalf("Failed to read test file %s: %v", expectedFile, err)
+		}
+
+		fset := token.NewFileSet()
+		file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
+		if err != nil {
+			t.Fatalf("Failed to parse file %s: %v", testFile, err)
+		}
+
+		if err := Replace(testFile, file, fset, Settings{CheckAll: false}); err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		fixed, err := ioutil.ReadFile(testFile) // nolint: gosec
+		if err != nil {
+			t.Fatalf("Failed to read fixed file %s: %v", testFile, err)
+		}
+
+		fixedLines := strings.Split(string(fixed), "\n")
+		expectedLines := strings.Split(string(expected), "\n")
+		if len(fixedLines) != len(expectedLines) {
+			t.Fatalf("Invalid number of result lines\n  expected: %d\n       got: %d",
+				len(expectedLines), len(fixedLines))
+		}
+		for i := range fixedLines {
+			// NOTE: This is a fix for Windows, not sure why this is happening
+			result := strings.TrimRight(fixedLines[i], "\r")
+			exp := strings.TrimRight(expectedLines[i], "\r")
+			if result != exp {
+				t.Fatalf("Wrong line %d in fixed file\n  expected: %s\n       got: %s",
+					i, exp, result)
+			}
+		}
+	})
+
+	t.Run("check all", func(t *testing.T) {
+		var testFile = filepath.Join("testdata", "checkall", "in", "main.go")
+		var expectedFile = filepath.Join("testdata", "checkall", "out", "main.go")
+
+		info, err := os.Stat(testFile)
+		if err != nil {
+			t.Fatalf("Failed to check test file %s: %v", testFile, err)
+		}
+		mode := info.Mode()
+		original, err := ioutil.ReadFile(testFile) // nolint: gosec
+		if err != nil {
+			t.Fatalf("Failed to read test file %s: %v", testFile, err)
+		}
+		defer func() {
+			ioutil.WriteFile(testFile, original, mode) // nolint: errcheck,gosec
+		}()
+		expected, err := ioutil.ReadFile(expectedFile) // nolint: gosec
+		if err != nil {
+			t.Fatalf("Failed to read test file %s: %v", expectedFile, err)
+		}
+
+		fset := token.NewFileSet()
+		file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
+		if err != nil {
+			t.Fatalf("Failed to parse file %s: %v", testFile, err)
+		}
+
+		if err := Replace(testFile, file, fset, Settings{CheckAll: true}); err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		fixed, err := ioutil.ReadFile(testFile) // nolint: gosec
+		if err != nil {
+			t.Fatalf("Failed to read fixed file %s: %v", testFile, err)
+		}
+
+		fixedLines := strings.Split(string(fixed), "\n")
+		expectedLines := strings.Split(string(expected), "\n")
+		if len(fixedLines) != len(expectedLines) {
+			t.Fatalf("Invalid number of result lines\n  expected: %d\n       got: %d",
+				len(expectedLines), len(fixedLines))
+		}
+		for i := range fixedLines {
+			// NOTE: This is a fix for Windows, not sure why this is happening
 			result := strings.TrimRight(fixedLines[i], "\r")
 			exp := strings.TrimRight(expectedLines[i], "\r")
 			if result != exp {

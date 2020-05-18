@@ -58,7 +58,9 @@ issues:
     - path: _test\.go
       linters:
         - dupl
+        - errcheck
         - funlen
+        - gosec
     - path: cmd/godot/main\.go
       linters:
         - gomnd
