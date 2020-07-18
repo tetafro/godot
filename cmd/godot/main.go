@@ -16,7 +16,7 @@ import (
 var version = "master"
 
 const usage = `Usage:
-    godot [OPTION] [FILES]
+	godot [OPTION] [FILES]
 Options:
 	-a, --all       check all top-level comments (not only declarations)
 	-f, --fix       fix issues, and print fixed version to stdout

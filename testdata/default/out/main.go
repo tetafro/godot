@@ -11,8 +11,10 @@ void myprint(char* s) {
 
 # PASS
 */
-import "C"
-import "unsafe"
+import (
+	"C"
+	"unsafe"
+)
 
 //args: tagged comment without period PASS
 
