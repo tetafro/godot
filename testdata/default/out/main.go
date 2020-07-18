@@ -90,6 +90,11 @@ func NonLatin() string {
 	return "привет, мир"
 }
 
+// Comment. (Parenthesis PASS.)
+func Parenthesis() string {
+	return "привет, мир"
+}
+
 func noComment() {
 	cs := C.CString("Hello from stdio\n")
 	C.myprint(cs)
