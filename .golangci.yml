@@ -29,7 +29,6 @@ linters:
     - gocyclo
     - godot
     - gofmt
-    - gofumpt
     - goimports
     - golint
     - gomnd
