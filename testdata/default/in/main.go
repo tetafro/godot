@@ -37,6 +37,14 @@ Multiline comment with a period PASS.
 
 // Single-line comment with a period PASS.
 
+// Block comment FAIL
+const (
+	// Inside comment FAIL
+	constant1 = "constant1"
+	// Inside comment PASS.
+	constant2 = "constant2"
+)
+
 // Declaration comment without a period FAIL
 type SimpleObject struct {
 	// Exported field comment - always PASS
