@@ -215,7 +215,7 @@ func check(fset *token.FileSet, group *ast.CommentGroup, level int) (iss Issue, 
 
 	pos := fset.Position(last.Slash)
 	pos.Line += p.line
-	pos.Column = p.column
+	pos.Column = p.column + level - 1
 
 	indent := strings.Repeat("\t", level-1)
 
