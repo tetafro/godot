@@ -109,6 +109,12 @@ func TestCheckComment(t *testing.T) {
 			pos:     position{},
 		},
 		{
+			name:    "singleline comment: kubernetes tag",
+			comment: "// +k8s:deepcopy-gen=package",
+			ok:      true,
+			pos:     position{},
+		},
+		{
 			name:    "singleline comment: cgo exported function",
 			comment: "//export FuncName",
 			ok:      true,
