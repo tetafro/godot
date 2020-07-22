@@ -416,23 +416,45 @@ func TestRunIntegration(t *testing.T) {
 }
 
 func TestFixIntegration(t *testing.T) {
+	t.Run("file not found", func(t *testing.T) {
+		path := filepath.Join("testdata", "not-exists.go")
+		_, err := Fix(path, nil, nil, Settings{})
+		if err == nil {
+			t.Fatal("Expected error, got nil")
+		}
+	})
+
+	t.Run("empty file", func(t *testing.T) {
+		path := filepath.Join("testdata", "empty.go")
+		fixed, err := Fix(path, nil, nil, Settings{})
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		if fixed != nil {
+			t.Fatalf("Unexpected result: %s", string(fixed))
+		}
+	})
+
 	testCases := []struct {
 		name     string
 		fileIn   string
 		fileOut  string
 		checkAll bool
+		errors   bool
 	}{
 		{
 			name:     "default check",
 			fileIn:   filepath.Join("testdata", "default", "in", "main.go"),
 			fileOut:  filepath.Join("testdata", "default", "out", "main.go"),
 			checkAll: false,
+			errors:   false,
 		},
 		{
 			name:     "check all",
 			fileIn:   filepath.Join("testdata", "checkall", "in", "main.go"),
 			fileOut:  filepath.Join("testdata", "checkall", "out", "main.go"),
 			checkAll: true,
+			errors:   false,
 		},
 	}
 
@@ -475,6 +497,14 @@ func TestFixIntegration(t *testing.T) {
 }
 
 func TestReplaceIntegration(t *testing.T) {
+	t.Run("file not found", func(t *testing.T) {
+		path := filepath.Join("testdata", "not-exists.go")
+		err := Replace(path, nil, nil, Settings{})
+		if err == nil {
+			t.Fatal("Expected error, got nil")
+		}
+	})
+
 	testCases := []struct {
 		name     string
 		fileIn   string
