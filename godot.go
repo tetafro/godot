@@ -291,6 +291,11 @@ func checkLastChar(s string) bool {
 	}
 	// Trim parenthesis for cases when the whole sentence is inside parenthesis
 	s = strings.TrimRight(s, ")")
+	// Don't panic when comment looks like this: `// )`
+	// TODO: Check previous line (which is not available in this function right now)
+	if len(s) == 0 {
+		return true
+	}
 	for _, ch := range lastChars {
 		if string(s[len(s)-1]) == ch {
 			return true

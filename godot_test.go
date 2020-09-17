@@ -150,6 +150,18 @@ func TestCheckComment(t *testing.T) {
 			ok:      false,
 			pos:     position{line: 0, column: 17},
 		},
+		{
+			name:    "singleline comment: single closing parenthesis without period",
+			comment: "// )",
+			ok:      true,
+			pos:     position{},
+		},
+		{
+			name:    "singleline comment: empty",
+			comment: "// ",
+			ok:      true,
+			pos:     position{},
+		},
 		// Multiline comments
 		{
 			name:    "multiline comment: ok",
@@ -270,6 +282,18 @@ func TestCheckComment(t *testing.T) {
 			comment: "/*\n" + "Hello.\n" + "(World)\n" + "*/",
 			ok:      false,
 			pos:     position{line: 2, column: 7},
+		},
+		{
+			name:    "multiline comment: single closing parenthesis without period",
+			comment: "/*\n" + " )\n" + "*/",
+			ok:      true,
+			pos:     position{},
+		},
+		{
+			name:    "multiline comment: empty",
+			comment: "/**/",
+			ok:      true,
+			pos:     position{},
 		},
 	}
 
