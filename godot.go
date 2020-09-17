@@ -138,33 +138,6 @@ func sortIssues(iss []Issue) {
 	})
 }
 
-// checkTopLevel checks all top-level comments.
-func checkTopLevel(file *ast.File, fset *token.FileSet) (issues []Issue) {
-	for _, group := range file.Comments {
-		if iss, ok := check(fset, group, topLevelColumn); !ok {
-			issues = append(issues, iss)
-		}
-	}
-	return issues
-}
-
-// checkDeclarations checks top level declaration comments.
-func checkDeclarations(file *ast.File, fset *token.FileSet) (issues []Issue) {
-	for _, decl := range file.Decls {
-		switch d := decl.(type) {
-		case *ast.GenDecl:
-			if iss, ok := check(fset, d.Doc, topLevelColumn); !ok {
-				issues = append(issues, iss)
-			}
-		case *ast.FuncDecl:
-			if iss, ok := check(fset, d.Doc, topLevelColumn); !ok {
-				issues = append(issues, iss)
-			}
-		}
-	}
-	return issues
-}
-
 // checkBlocks checks comments inside top level blocks (var (...), const (...), etc).
 func checkBlocks(file *ast.File, fset *token.FileSet) (issues []Issue) {
 	for _, decl := range file.Decls {
@@ -186,6 +159,33 @@ func checkBlocks(file *ast.File, fset *token.FileSet) (issues []Issue) {
 				continue
 			}
 			if iss, ok := check(fset, group, topLevelGroupColumn); !ok {
+				issues = append(issues, iss)
+			}
+		}
+	}
+	return issues
+}
+
+// checkTopLevel checks all top-level comments.
+func checkTopLevel(file *ast.File, fset *token.FileSet) (issues []Issue) {
+	for _, group := range file.Comments {
+		if iss, ok := check(fset, group, topLevelColumn); !ok {
+			issues = append(issues, iss)
+		}
+	}
+	return issues
+}
+
+// checkDeclarations checks top level declaration comments.
+func checkDeclarations(file *ast.File, fset *token.FileSet) (issues []Issue) {
+	for _, decl := range file.Decls {
+		switch d := decl.(type) {
+		case *ast.GenDecl:
+			if iss, ok := check(fset, d.Doc, topLevelColumn); !ok {
+				issues = append(issues, iss)
+			}
+		case *ast.FuncDecl:
+			if iss, ok := check(fset, d.Doc, topLevelColumn); !ok {
 				issues = append(issues, iss)
 			}
 		}
