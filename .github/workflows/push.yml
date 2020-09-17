@@ -1,4 +1,7 @@
-on: [push]
+# Run on push, skip release tags
+on:
+  push:
+    tags-ignore: ['*']
 
 name: Push commits
 
