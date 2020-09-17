@@ -275,7 +275,7 @@ func checkLastChar(s string) bool {
 		return true
 	}
 	// Skip cgo export tags: https://golang.org/cmd/cgo/#hdr-C_references_to_Go
-	if strings.HasPrefix(s, "export") {
+	if strings.HasPrefix(s, "export ") {
 		return true
 	}
 	s = strings.TrimSpace(s)
