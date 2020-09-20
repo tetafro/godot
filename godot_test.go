@@ -1,6 +1,7 @@
 package godot
 
 import (
+	"go/ast"
 	"go/parser"
 	"go/token"
 	"io/ioutil"
@@ -10,382 +11,415 @@ import (
 	"testing"
 )
 
-func TestCheckComment(t *testing.T) {
+func TestGetText(t *testing.T) {
 	testCases := []struct {
 		name    string
-		comment string
-		ok      bool
-		pos     position
+		comment *ast.CommentGroup
+		text    string
 	}{
-		// Single line comments
 		{
-			name:    "singleline comment: ok",
-			comment: "// Hello, world.",
-			ok:      true,
-			pos:     position{},
+			name: "regular text",
+			comment: &ast.CommentGroup{List: []*ast.Comment{
+				{Text: "// Hello, world"},
+			}},
+			text: "// Hello, world",
 		},
 		{
-			name:    "singleline comment: no period",
-			comment: "// Hello, world",
-			ok:      false,
-			pos:     position{line: 0, column: 15},
+			name: "regular text without indentation",
+			comment: &ast.CommentGroup{List: []*ast.Comment{
+				{Text: "//Hello, world"},
+			}},
+			text: "//Hello, world",
 		},
 		{
-			name:    "singleline comment: question mark",
-			comment: "// Hello, world?",
-			ok:      true,
-			pos:     position{},
+			name: "empty singleline comment",
+			comment: &ast.CommentGroup{List: []*ast.Comment{
+				{Text: "//"},
+			}},
+			text: "//",
 		},
 		{
-			name:    "singleline comment: exclamation mark",
-			comment: "// Hello, world!",
-			ok:      true,
-			pos:     position{},
+			name: "empty multiline comment",
+			comment: &ast.CommentGroup{List: []*ast.Comment{
+				{Text: "/**/"},
+			}},
+			text: "/**/",
 		},
 		{
-			name:    "singleline comment: code example without period",
-			comment: "//  x == y",
-			ok:      true,
-			pos:     position{},
+			name: "regular text in multiline block",
+			comment: &ast.CommentGroup{List: []*ast.Comment{
+				{Text: "/*\nHello, world\n*/"},
+			}},
+			text: "/*\nHello, world\n*/",
 		},
 		{
-			name:    "singleline comment: code example without period and long indentation",
-			comment: "//       x == y",
-			ok:      true,
-			pos:     position{},
+			name: "block of singleline comments with regular text",
+			comment: &ast.CommentGroup{List: []*ast.Comment{
+				{Text: "// One"},
+				{Text: "// Two"},
+				{Text: "// Three"},
+			}},
+			text: "// One\n// Two\n// Three",
 		},
 		{
-			name:    "singleline comment: code example without period and tab indentation",
-			comment: "//\tx == y",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "singleline comment: code example without period and mixed indentation",
-			comment: "// \tx == y",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "singleline comment: empty line",
-			comment: "//",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "singleline comment: empty line with spaces",
-			comment: "//      ",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "singleline comment: without indentation and with period",
-			comment: "//hello, world.",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "singleline comment: without indentation and without period",
-			comment: "//hello, world",
-			ok:      false,
-			pos:     position{line: 0, column: 14},
-		},
-		{
-			name:    "singleline comment: nolint mark without period",
-			comment: "// nolint: test",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "singleline comment: nolint mark without indentation without period",
-			comment: "//nolint: test",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "singleline comment: build tags",
-			comment: "// +build !linux",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "singleline comment: kubernetes tag",
-			comment: "// +k8s:deepcopy-gen=package",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "singleline comment: cgo exported function",
-			comment: "//export FuncName",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "singleline comment: url at the end of line",
-			comment: "// Read more: http://example.com/",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "singleline comment: cyrillic, with period",
-			comment: "// Кириллица.",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "singleline comment: cyrillic, without period",
-			comment: "// Кириллица",
-			ok:      false,
-			pos:     position{line: 0, column: 12},
-		},
-		{
-			name:    "singleline comment: parenthesis, with period",
-			comment: "// Hello. (World.)",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "singleline comment: parenthesis, without period",
-			comment: "// Hello. (World)",
-			ok:      false,
-			pos:     position{line: 0, column: 17},
-		},
-		{
-			name:    "singleline comment: single closing parenthesis without period",
-			comment: "// )",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "singleline comment: empty",
-			comment: "// ",
-			ok:      true,
-			pos:     position{},
-		},
-		// Multiline comments
-		{
-			name:    "multiline comment: ok",
-			comment: "/*\n" + "Hello, world.\n" + "*/",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "multiline comment: no period",
-			comment: "/*\n" + "Hello, world\n" + "*/",
-			ok:      false,
-			pos:     position{line: 1, column: 12},
-		},
-		{
-			name:    "multiline comment: question mark",
-			comment: "/*\n" + "Hello, world?\n" + "*/",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "multiline comment: exclamation mark",
-			comment: "/*\n" + "Hello, world!\n" + "*/",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "multiline comment: code example without period",
-			comment: "/*\n" + "  x == y\n" + "*/",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "multiline comment: code example without period and long indentation",
-			comment: "/*\n" + "       x == y\n" + "*/",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "multiline comment: code example without period and tab indentation",
-			comment: "/*\n" + "\tx == y\n" + "*/",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "multiline comment: empty line",
-			comment: "/**/",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "multiline comment: empty line inside",
-			comment: "/*\n" + "\n" + "*/",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "multiline comment: empty line with spaces",
-			comment: "/*\n" + "    \n" + "*/",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "multiline comment: closing with whitespaces",
-			comment: "/*\n" + "    \n" + "   */",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "multiline comment: one-liner with period",
-			comment: "/* Hello, world. */",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "multiline comment: one-liner with period and without indentation",
-			comment: "/*Hello, world.*/",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "multiline comment: one-liner without period and without indentation",
-			comment: "/*Hello, world*/",
-			ok:      false,
-			pos:     position{line: 0, column: 14},
-		},
-		{
-			name:    "multiline comment: long comment",
-			comment: "/*\n" + "\n" + "   \n" + "Hello, world\n" + "\n" + "  \n" + "*/",
-			ok:      false,
-			pos:     position{line: 3, column: 12},
-		},
-		{
-			name:    "multiline comment: url at the end of line",
-			comment: "/*\n" + "Read more: http://example.com/\n" + "*/",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "multiline comment: cyrillic, with period",
-			comment: "/*\n" + "Кириллица.\n" + "*/",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "multiline comment: cyrillic, without period",
-			comment: "/*\n" + "Кириллица\n" + "*/",
-			ok:      false,
-			pos:     position{line: 1, column: 9},
-		},
-		{
-			name:    "multiline comment: parenthesis, with period",
-			comment: "/*\n" + "Hello.\n" + "(World.)\n" + "*/",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "multiline comment: parenthesis, without period",
-			comment: "/*\n" + "Hello.\n" + "(World)\n" + "*/",
-			ok:      false,
-			pos:     position{line: 2, column: 7},
-		},
-		{
-			name:    "multiline comment: single closing parenthesis without period",
-			comment: "/*\n" + " )\n" + "*/",
-			ok:      true,
-			pos:     position{},
-		},
-		{
-			name:    "multiline comment: empty",
-			comment: "/**/",
-			ok:      true,
-			pos:     position{},
+			name: "block of singleline comments with empty and special lines",
+			comment: &ast.CommentGroup{List: []*ast.Comment{
+				{Text: "// One"},
+				{Text: "//"},
+				{Text: "//  \t  "},
+				{Text: "// Two"},
+				{Text: "// #nosec"},
+				{Text: "// Three"},
+				{Text: "// +k8s:deepcopy-gen=package"},
+				{Text: "// +nolint: gosec"},
+			}},
+			text: "// One\n//\n// .\n// Two\n// .\n// Three\n// .\n// .",
 		},
 	}
 
 	for _, tt := range testCases {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			pos, ok := checkComment(tt.comment)
-			if ok != tt.ok {
-				t.Fatalf("Wrong result, expected %v, got %v", tt.ok, ok)
-			}
-			if pos.line != tt.pos.line {
-				t.Fatalf("Wrong line, expected %d, got %d", tt.pos.line, pos.line)
-			}
-			if pos.column != tt.pos.column {
-				t.Fatalf("Wrong column, expected %d, got %d", tt.pos.column, pos.column)
+			if text := getText(tt.comment); text != tt.text {
+				t.Fatalf("Wrong text\n  expected: %s\n       got: %s", tt.text, text)
 			}
 		})
 	}
 }
 
-func TestMakeReplacement(t *testing.T) {
+func TestCheckText(t *testing.T) {
 	testCases := []struct {
 		name        string
 		comment     string
-		pos         position
+		ok          bool
+		issue       position
 		replacement string
 	}{
 		{
-			name:        "singleline comment",
+			name:    "sentence with period, singleline comment",
+			comment: "// Hello, world.",
+			ok:      true,
+		},
+		{
+			name:    "with period, no indentation",
+			comment: "//Hello, world.",
+			ok:      true,
+		},
+		{
+			name:    "with period, multiple singleline comments",
+			comment: "// Hello,\n// world.",
+			ok:      true,
+		},
+		{
+			name:    "with period, multiline block",
+			comment: "/*\nHello, world.\n*/",
+			ok:      true,
+		},
+		{
+			name:    "with period, multiline block, single line",
+			comment: "/* Hello, world. */",
+			ok:      true,
+		},
+		{
+			name:        "no period, singleline comment",
 			comment:     "// Hello, world",
-			pos:         position{line: 0, column: 15},
+			issue:       position{line: 1, column: 16},
 			replacement: "// Hello, world.",
 		},
 		{
-			name:        "short singleline comment",
-			comment:     "//x",
-			pos:         position{line: 0, column: 3},
-			replacement: "//x.",
-		},
-		{
-			name:        "cyrillic singleline comment",
-			comment:     "// Привет, мир",
-			pos:         position{line: 0, column: 14},
-			replacement: "// Привет, мир.",
-		},
-		{
-			name:        "multiline comment",
-			comment:     "/*\n" + "Hello, world\n" + "*/",
-			pos:         position{line: 1, column: 12},
+			name:        "no period, multiline block",
+			comment:     "/*\nHello, world\n*/",
+			issue:       position{line: 2, column: 13},
 			replacement: "Hello, world.",
 		},
 		{
-			name:        "short multiline comment",
-			comment:     "/*\n" + "x\n" + "*/",
-			pos:         position{line: 1, column: 1},
-			replacement: "x.",
-		},
-		{
-			name:        "multiline comment in one line",
+			name:        "no period, multiline block, single line",
 			comment:     "/* Hello, world */",
-			pos:         position{line: 0, column: 15},
+			issue:       position{line: 1, column: 16},
 			replacement: "/* Hello, world. */",
 		},
 		{
-			name:        "cyrillic multiline comment",
-			comment:     "/* Привет, мир */",
-			pos:         position{line: 0, column: 14},
-			replacement: "/* Привет, мир. */",
+			name:        "no period, set of single line comments",
+			comment:     "// Hello,\n// world",
+			issue:       position{line: 2, column: 9},
+			replacement: "// world.",
 		},
 		{
-			name:        "invalid line",
-			comment:     "// Привет, мир",
-			pos:         position{line: 100, column: 0},
-			replacement: "// Привет, мир",
+			name:    "question mark",
+			comment: "// Hello, world?",
+			ok:      true,
 		},
 		{
-			name:        "invalid column",
-			comment:     "// Привет, мир",
-			pos:         position{line: 0, column: 100},
-			replacement: "// Привет, мир",
+			name:    "exclamation mark",
+			comment: "// Hello, world!",
+			ok:      true,
+		},
+		{
+			name:    "empty line",
+			comment: "//",
+			ok:      true,
+		},
+		{
+			name:    "empty multiline block",
+			comment: "/**/",
+			ok:      true,
+		},
+		{
+			name:    "multiple empty singleline comments",
+			comment: "//\n//\n//\n//",
+			ok:      true,
+		},
+		{
+			name:    "only spaces",
+			comment: "//   ",
+			ok:      true,
+		},
+		{
+			name:    "mixed spaces",
+			comment: "// \t\t  ",
+			ok:      true,
+		},
+		{
+			name:    "mixed spaces, multiline block",
+			comment: "/* \t\t \n\n\n  \n\t  */",
+			ok:      true,
+		},
+		{
+			name:    "cyrillic, with period",
+			comment: "// Кириллица.",
+			ok:      true,
+		},
+		{
+			name:        "// cyrillic, without period",
+			comment:     "// Кириллица",
+			issue:       position{line: 1, column: 13},
+			replacement: "// Кириллица.",
+		},
+		{
+			name:    "parenthesis, with period",
+			comment: "// Hello. (World.)",
+			ok:      true,
+		},
+		{
+			name:        "parenthesis, without period",
+			comment:     "// Hello. (World)",
+			issue:       position{line: 1, column: 18},
+			replacement: "// Hello. (World).",
+		},
+		{
+			name:    "single closing parenthesis with period",
+			comment: "// ).",
+			ok:      true,
+		},
+		{
+			name:        "single closing parenthesis without period",
+			comment:     "// )",
+			issue:       position{line: 1, column: 5},
+			replacement: "// ).",
 		},
 	}
 
 	for _, tt := range testCases {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			replacement := makeReplacement(tt.comment, tt.pos)
-			if replacement != tt.replacement {
-				t.Fatalf(
-					"Wrong replacement\n  expected: %s\n       got: %s",
-					tt.replacement, replacement,
-				)
+			pos, rep, ok := checkText(tt.comment)
+			if ok != tt.ok {
+				t.Fatalf("Wrong result\n  expected: %v\n       got: %v", tt.ok, ok)
+			}
+			if pos.line != tt.issue.line {
+				t.Fatalf("Wrong line\n  expected: %d\n       got: %d", tt.issue.line, pos.line)
+			}
+			if pos.column != tt.issue.column {
+				t.Fatalf("Wrong column\n  expected: %d\n       got: %d", tt.issue.column, pos.column)
+			}
+			if rep != tt.replacement {
+				t.Fatalf("Wrong replacement\n  expected: %s\n       got: %s", tt.replacement, rep)
+			}
+		})
+	}
+}
+
+func TestIsSpecialBlock(t *testing.T) {
+	testCases := []struct {
+		name      string
+		comment   string
+		isSpecial bool
+	}{
+		{
+			name:      "regular text",
+			comment:   "Hello, world.",
+			isSpecial: false,
+		},
+		{
+			name:      "comment",
+			comment:   "// Hello, world",
+			isSpecial: false,
+		},
+		{
+			name:      "empty string",
+			comment:   "",
+			isSpecial: false,
+		},
+		{
+			name:      "Multiline comment",
+			comment:   "/*\nHello, world\n*/",
+			isSpecial: false,
+		},
+		{
+			name: "CGO block",
+			comment: `/*
+				#include <iostream>
+
+				int main() {
+					std::cout << "Hello World!";
+					return 0;
+				}
+			*/`,
+			isSpecial: true,
+		},
+	}
+
+	for _, tt := range testCases {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			if isSpecialBlock(tt.comment) != tt.isSpecial {
+				t.Fatalf("Wrong result")
+			}
+		})
+	}
+}
+
+func TestIsSpecialLine(t *testing.T) {
+	testCases := []struct {
+		name      string
+		comment   string
+		isSpecial bool
+	}{
+		{
+			name:      "regular text",
+			comment:   "// Hello, world.",
+			isSpecial: false,
+		},
+		{
+			name:      "regular text without period",
+			comment:   "// Hello, world",
+			isSpecial: false,
+		},
+		{
+			name:      "code example (two spaces indentation)",
+			comment:   "//  x == y",
+			isSpecial: true,
+		},
+		{
+			name:      "code example (many spaces indentation)",
+			comment:   "//  x == y",
+			isSpecial: true,
+		},
+		{
+			name:      "code example (single tab indentation)",
+			comment:   "//\tx == y",
+			isSpecial: true,
+		},
+		{
+			name:      "code example (many tabs indentation)",
+			comment:   "// \t\t\tx == y",
+			isSpecial: true,
+		},
+		{
+			name:      "code example (mixed indentation)",
+			comment:   "//  \t  \tx == y",
+			isSpecial: true,
+		},
+		{
+			name:      "nolint tag",
+			comment:   "// nolint: test",
+			isSpecial: true,
+		},
+		{
+			name:      "nolint tag without indentation",
+			comment:   "//nolint: test",
+			isSpecial: true,
+		},
+		{
+			name:      "build tags",
+			comment:   "// +build !linux",
+			isSpecial: true,
+		},
+		{
+			name:      "build tags without indentation",
+			comment:   "//+build !linux",
+			isSpecial: true,
+		},
+		{
+			name:      "kubernetes tag",
+			comment:   "// +k8s:deepcopy-gen=package",
+			isSpecial: true,
+		},
+		{
+			name:      "cgo exported function",
+			comment:   "//export FuncName",
+			isSpecial: true,
+		},
+		{
+			name:      "cgo exported function with indentation (wrong format)",
+			comment:   "// export FuncName",
+			isSpecial: false,
+		},
+		{
+			name:      "url at the end of line",
+			comment:   "// Read more: http://example.com/",
+			isSpecial: true,
+		},
+	}
+
+	for _, tt := range testCases {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			if isSpecialLine(tt.comment) != tt.isSpecial {
+				t.Fatalf("Wrong result")
+			}
+		})
+	}
+}
+
+func TestHasSuffix(t *testing.T) {
+	testCases := []struct {
+		name     string
+		text     string
+		suffixes []string
+		result   bool
+	}{
+		{
+			name:     "has",
+			text:     "hello, world.",
+			suffixes: []string{",", "?", "."},
+			result:   true,
+		},
+		{
+			name:     "has not",
+			text:     "hello, world.",
+			suffixes: []string{",", "?", ":"},
+			result:   false,
+		},
+		{
+			name:     "has, long suffixes",
+			text:     "hello, world.",
+			suffixes: []string{"x.", "m.", "d."},
+			result:   true,
+		},
+		{
+			name:     "has not, long suffixes",
+			text:     "hello, world.",
+			suffixes: []string{"x.", "m.", "k."},
+			result:   false,
+		},
+	}
+
+	for _, tt := range testCases {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			if hasSuffix(tt.text, tt.suffixes) != tt.result {
+				t.Fatalf("Wrong result")
 			}
 		})
 	}

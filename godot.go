@@ -13,14 +13,13 @@ import (
 	"strings"
 )
 
+// CAUTION: Line and column indexes start from 1.
+
 const (
 	// noPeriodMessage is an error message to return.
 	noPeriodMessage = "Top level comment should end in a period"
 	// topLevelColumn is just the most left column of the file.
 	topLevelColumn = 1
-	// topLevelGroupColumn is the most left column inside a group declaration
-	// on the top level.
-	topLevelGroupColumn = 2
 )
 
 // Settings contains linter settings.
@@ -29,22 +28,24 @@ type Settings struct {
 	CheckAll bool
 }
 
-// Issue contains a description of linting error and a possible replacement.
+// Issue contains a description of linting error and a recommended replacement.
 type Issue struct {
 	Pos         token.Position
 	Message     string
 	Replacement string
 }
 
-// position is an position inside a comment (might be multiline comment).
+// position is a position inside a comment (might be multiline comment).
 type position struct {
 	line   int
 	column int
 }
 
 var (
-	// List of valid last characters.
-	lastChars = []string{".", "?", "!"}
+	// List of valid sentence ending.
+	// NOTE: Sentence can be inside parenthesis, and therefore ends
+	// with parenthesis.
+	lastChars = []string{".", "?", "!", ".)", "?)", "!)"}
 
 	// Special tags in comments like "// nolint:", or "// +k8s:".
 	tags = regexp.MustCompile(`^\+?[a-z0-9]+:`)
@@ -58,22 +59,13 @@ var (
 
 // Run runs this linter on the provided code.
 func Run(file *ast.File, fset *token.FileSet, settings Settings) []Issue {
-	issues := checkBlocks(file, fset)
-
-	// Check all top-level comments
-	if settings.CheckAll {
-		issues = append(issues, checkTopLevel(file, fset)...)
-		sortIssues(issues)
-		return issues
-	}
-
-	// Check only declaration comments
-	issues = append(issues, checkDeclarations(file, fset)...)
+	comments := getComments(file, fset, settings.CheckAll)
+	issues := checkComments(fset, comments)
 	sortIssues(issues)
 	return issues
 }
 
-// Fix fixes all issues and return new version of file content.
+// Fix fixes all issues and returns new version of file content.
 func Fix(path string, file *ast.File, fset *token.FileSet, settings Settings) ([]byte, error) {
 	// Read file
 	content, err := ioutil.ReadFile(path) // nolint: gosec
@@ -138,8 +130,12 @@ func sortIssues(iss []Issue) {
 	})
 }
 
-// checkBlocks checks comments inside top level blocks (var (...), const (...), etc).
-func checkBlocks(file *ast.File, fset *token.FileSet) (issues []Issue) {
+// getComments extracts comments from a file. If `all` is set, all top-level
+// comments are extracted, otherwise - only top-level declaration comments.
+func getComments(file *ast.File, fset *token.FileSet, all bool) []*ast.CommentGroup {
+	var comments []*ast.CommentGroup
+
+	// Get comments from top level blocks: var (...), const (...)
 	for _, decl := range file.Decls {
 		d, ok := decl.(*ast.GenDecl)
 		if !ok {
@@ -155,172 +151,209 @@ func checkBlocks(file *ast.File, fset *token.FileSet) (issues []Issue) {
 				continue
 			}
 			// Skip comments that are not top-level for this block
-			if fset.Position(group.Pos()).Column != topLevelGroupColumn {
+			if fset.Position(group.Pos()).Column != topLevelColumn+1 {
 				continue
 			}
-			if iss, ok := check(fset, group, topLevelGroupColumn); !ok {
-				issues = append(issues, iss)
+			comments = append(comments, group)
+		}
+	}
+
+	// Get all top level comments
+	if all {
+		for _, comment := range file.Comments {
+			if fset.Position(comment.Pos()).Column != topLevelColumn {
+				continue
 			}
+			comments = append(comments, comment)
 		}
+		return comments
 	}
-	return issues
-}
 
-// checkTopLevel checks all top-level comments.
-func checkTopLevel(file *ast.File, fset *token.FileSet) (issues []Issue) {
-	for _, group := range file.Comments {
-		if iss, ok := check(fset, group, topLevelColumn); !ok {
-			issues = append(issues, iss)
-		}
-	}
-	return issues
-}
-
-// checkDeclarations checks top level declaration comments.
-func checkDeclarations(file *ast.File, fset *token.FileSet) (issues []Issue) {
+	// Get top level declaration comments
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {
 		case *ast.GenDecl:
-			if iss, ok := check(fset, d.Doc, topLevelColumn); !ok {
-				issues = append(issues, iss)
-			}
+			comments = append(comments, d.Doc)
 		case *ast.FuncDecl:
-			if iss, ok := check(fset, d.Doc, topLevelColumn); !ok {
-				issues = append(issues, iss)
-			}
+			comments = append(comments, d.Doc)
 		}
+	}
+	return comments
+}
+
+// checkComments checks that every comment ends with a period.
+func checkComments(fset *token.FileSet, comments []*ast.CommentGroup) []Issue {
+	var issues []Issue // nolint: prealloc
+	for _, comment := range comments {
+		if comment == nil || len(comment.List) == 0 {
+			continue
+		}
+
+		start := fset.Position(comment.List[0].Slash)
+		indent := strings.Repeat("\t", start.Column-1)
+
+		text := getText(comment)
+		pos, rep, ok := checkText(text)
+		if ok {
+			continue
+		}
+
+		iss := Issue{
+			Pos: token.Position{
+				Filename: start.Filename,
+				Offset:   start.Offset,
+				Line:     start.Line + pos.line - 1,
+				Column:   start.Column + pos.column - 1,
+			},
+			Message:     noPeriodMessage,
+			Replacement: indent + rep,
+		}
+
+		issues = append(issues, iss)
 	}
 	return issues
 }
 
-func check(fset *token.FileSet, group *ast.CommentGroup, level int) (iss Issue, ok bool) {
-	if group == nil || len(group.List) == 0 {
-		return Issue{}, true
+// getText extracts text from comment. If comment is a special block
+// (e.g., CGO code), a block of empty lines is returned. If comment contains
+// special lines (e.g., tags or indented code examples), they are replaced
+// with a period, it's a hack to not force setting a period in comments
+// before special lines. The result can be multiline.
+func getText(comment *ast.CommentGroup) (s string) {
+	if len(comment.List) == 1 &&
+		strings.HasPrefix(comment.List[0].Text, "/*") &&
+		isSpecialBlock(comment.List[0].Text) {
+		return strings.Repeat("\n", len(comment.List[0].Text)-1)
 	}
 
-	// Check only top-level comments
-	if fset.Position(group.Pos()).Column > level {
-		return Issue{}, true
+	for _, c := range comment.List {
+		isMultiline := strings.HasPrefix(c.Text, "/*")
+		for _, line := range strings.Split(c.Text, "\n") {
+			if isSpecialLine(line) {
+				if isMultiline {
+					line = "."
+				} else {
+					line = "// ."
+				}
+			}
+			s += line + "\n"
+		}
 	}
-
-	// Get last element from comment group - it can be either
-	// last (or single) line for "//"-comment, or multiline string
-	// for "/*"-comment
-	last := group.List[len(group.List)-1]
-
-	p, ok := checkComment(last.Text)
-	if ok {
-		return Issue{}, true
+	if len(s) == 0 {
+		return ""
 	}
-
-	pos := fset.Position(last.Slash)
-	pos.Line += p.line
-	pos.Column = p.column + level - 1
-
-	indent := strings.Repeat("\t", level-1)
-
-	iss = Issue{
-		Pos:         pos,
-		Message:     noPeriodMessage,
-		Replacement: indent + makeReplacement(last.Text, p),
-	}
-	return iss, false
+	return s[:len(s)-1] // trim last "\n"
 }
 
-func checkComment(comment string) (pos position, ok bool) {
-	// Check last line of "//"-comment
-	if strings.HasPrefix(comment, "//") {
-		pos.column = len([]rune(comment)) // runes for non-latin chars
-		comment = strings.TrimPrefix(comment, "//")
-		if checkLastChar(comment) {
-			return position{}, true
-		}
-		return pos, false
-	}
+// checkText checks extracted text from comment structure, and returns position
+// of the an issue if found and a replacement for it.
+// NOTE: Returned position is a position inside given text, not position in
+// the original file.
+func checkText(comment string) (pos position, replacement string, ok bool) {
+	isBlock := strings.HasPrefix(comment, "/*")
 
-	// Skip cgo code blocks
-	// TODO: Find a better way to detect cgo code
-	if strings.Contains(comment, "#include") || strings.Contains(comment, "#define") {
-		return position{}, true
-	}
-
-	// Check last non-empty line in multiline "/*"-comment block
+	// Check last non-empty line
+	var found bool
+	var line string
+	var prefix, suffix string
 	lines := strings.Split(comment, "\n")
-	var i int
-	for i = len(lines) - 1; i >= 0; i-- {
-		if s := strings.TrimSpace(lines[i]); s == "*/" || s == "" {
+	for i := len(lines) - 1; i >= 0; i-- {
+		line = lines[i]
+
+		// Trim //, /*, */ and save them
+		suffix, prefix = "", ""
+		if !isBlock {
+			line = strings.TrimPrefix(line, "//")
+			prefix = "//"
+		}
+		if isBlock && i == 0 {
+			line = strings.TrimPrefix(line, "/*")
+			prefix = "/*"
+		}
+		if isBlock && i == len(lines)-1 {
+			if strings.HasSuffix(line, " */") {
+				line = strings.TrimSuffix(line, " */")
+				suffix = " */"
+			}
+			if strings.HasSuffix(line, "*/") {
+				line = strings.TrimSuffix(line, "*/")
+				suffix = "*/"
+			}
+		}
+
+		if strings.TrimSpace(line) == "" {
 			continue
 		}
+
+		found = true
+		pos.line = i + 1
 		break
 	}
-	pos.line = i
-	comment = lines[i]
-	comment = strings.TrimSuffix(comment, "*/")
-	comment = strings.TrimRight(comment, " ")
-	// Get position of the last non-space char in comment line, use runes
-	// in case of non-latin chars
-	pos.column = len([]rune(comment))
-	comment = strings.TrimPrefix(comment, "/*")
-
-	if checkLastChar(comment) {
-		return position{}, true
+	// All lines are empty
+	if !found {
+		return position{}, "", true
 	}
-	return pos, false
+	// Correct line
+	if hasSuffix(strings.TrimSpace(line), lastChars) {
+		return position{}, "", true
+	}
+
+	pos.column = len([]rune(prefix+line)) + 1
+	replacement = prefix + line + "." + suffix
+	return pos, replacement, false
 }
 
-func checkLastChar(s string) bool {
-	// Don't check comments starting with space indentation - they may
-	// contain code examples, which shouldn't end with period
-	if strings.HasPrefix(s, "  ") || strings.HasPrefix(s, " \t") || strings.HasPrefix(s, "\t") {
+// isSpecialBlock checks that given block of comment lines is special and
+// shouldn't be checked as a regular sentence.
+func isSpecialBlock(comment string) bool {
+	// Skip cgo code blocks
+	// TODO: Find a better way to detect cgo code
+	if strings.HasPrefix(comment, "/*") && (strings.Contains(comment, "#include") ||
+		strings.Contains(comment, "#define")) {
 		return true
-	}
-	// Skip cgo export tags: https://golang.org/cmd/cgo/#hdr-C_references_to_Go
-	if strings.HasPrefix(s, "export ") {
-		return true
-	}
-	s = strings.TrimSpace(s)
-	if tags.MatchString(s) ||
-		hashtags.MatchString(s) ||
-		endURL.MatchString(s) ||
-		strings.HasPrefix(s, "+build") {
-		return true
-	}
-	// Don't check empty lines
-	if s == "" {
-		return true
-	}
-	// Trim parenthesis for cases when the whole sentence is inside parenthesis
-	s = strings.TrimRight(s, ")")
-	// Don't panic when comment looks like this: `// )`
-	// TODO: Check previous line (which is not available in this function right now)
-	if len(s) == 0 {
-		return true
-	}
-	for _, ch := range lastChars {
-		if string(s[len(s)-1]) == ch {
-			return true
-		}
 	}
 	return false
 }
 
-// makeReplacement basically just inserts a period into comment on
-// the given position.
-func makeReplacement(s string, pos position) string {
-	lines := strings.Split(s, "\n")
-	if len(lines) < pos.line {
-		// This should never happen
-		return s
+// isSpecialBlock checks that given comment line is special and
+// shouldn't be checked as a regular sentence.
+func isSpecialLine(comment string) bool {
+	// Skip cgo export tags: https://golang.org/cmd/cgo/#hdr-C_references_to_Go
+	if strings.HasPrefix(comment, "//export ") {
+		return true
 	}
-	line := []rune(lines[pos.line])
-	if len(line) < pos.column {
-		// This should never happen
-		return s
+
+	comment = strings.TrimPrefix(comment, "//")
+	comment = strings.TrimPrefix(comment, "/*")
+
+	// Don't check comments starting with space indentation - they may
+	// contain code examples, which shouldn't end with period
+	if strings.HasPrefix(comment, "  ") ||
+		strings.HasPrefix(comment, " \t") ||
+		strings.HasPrefix(comment, "\t") {
+		return true
 	}
-	// Insert a period
-	newline := append(
-		line[:pos.column],
-		append([]rune{'.'}, line[pos.column:]...)...,
-	)
-	return string(newline)
+
+	// Skip tags and URLs
+	comment = strings.TrimSpace(comment)
+	if tags.MatchString(comment) ||
+		hashtags.MatchString(comment) ||
+		endURL.MatchString(comment) ||
+		strings.HasPrefix(comment, "+build") {
+		return true
+	}
+
+	return false
+}
+
+func hasSuffix(s string, suffixes []string) bool {
+	if s == "" {
+		return false
+	}
+	for _, suffix := range suffixes {
+		if strings.HasSuffix(s, suffix) {
+			return true
+		}
+	}
+	return false
 }
