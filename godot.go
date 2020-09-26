@@ -1,5 +1,5 @@
-// Package godot checks if all top-level comments contain a period at the
-// end of the last sentence if needed.
+// Package godot checks if comments contain a period at the end of the last
+// sentence if needed.
 package godot
 
 import (
@@ -17,15 +17,25 @@ import (
 
 const (
 	// noPeriodMessage is an error message to return.
-	noPeriodMessage = "Top level comment should end in a period"
+	noPeriodMessage = "Comment should end in a period"
 	// topLevelColumn is just the most left column of the file.
 	topLevelColumn = 1
 )
 
+// Scope sets which comments should be checked.
+type Scope string
+
+// List of available check scopes.
+const (
+	// DeclScope is for top level declaration comments.
+	DeclScope Scope = "decl"
+	// TopLevelScope is for all top level comments.
+	TopLevelScope Scope = "top"
+)
+
 // Settings contains linter settings.
 type Settings struct {
-	// Check all top-level comments, not only declarations
-	CheckAll bool
+	Scope Scope
 }
 
 // Issue contains a description of linting error and a recommended replacement.
@@ -59,7 +69,7 @@ var (
 
 // Run runs this linter on the provided code.
 func Run(file *ast.File, fset *token.FileSet, settings Settings) []Issue {
-	comments := getComments(file, fset, settings.CheckAll)
+	comments := getComments(file, fset, settings.Scope)
 	issues := checkComments(fset, comments)
 	sortIssues(issues)
 	return issues
@@ -130,9 +140,8 @@ func sortIssues(iss []Issue) {
 	})
 }
 
-// getComments extracts comments from a file. If `all` is set, all top-level
-// comments are extracted, otherwise - only top-level declaration comments.
-func getComments(file *ast.File, fset *token.FileSet, all bool) []*ast.CommentGroup {
+// getComments extracts comments from a file.
+func getComments(file *ast.File, fset *token.FileSet, scope Scope) []*ast.CommentGroup {
 	var comments []*ast.CommentGroup
 
 	// Get comments from the inside of top level blocks: var (...), const (...)
@@ -159,7 +168,7 @@ func getComments(file *ast.File, fset *token.FileSet, all bool) []*ast.CommentGr
 	}
 
 	// Get all top level comments
-	if all {
+	if scope == TopLevelScope {
 		for _, comment := range file.Comments {
 			if fset.Position(comment.Pos()).Column != topLevelColumn {
 				continue

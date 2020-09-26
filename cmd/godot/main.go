@@ -15,10 +15,11 @@ import (
 // version is the application version. It is set to the latest git tag in CI.
 var version = "master"
 
+// nolint: lll
 const usage = `Usage:
 	godot [OPTION] [FILES]
 Options:
-	-a, --all       check all top-level comments (not only declarations)
+	-s, --scope     set scope for check (decl for top level declaration comments, top for top level comments, all for all comments)
 	-f, --fix       fix issues, and print fixed version to stdout
 	-h, --help      show this message
 	-v, --version   show version
@@ -27,9 +28,9 @@ Options:
 type arguments struct {
 	help    bool
 	version bool
-	all     bool
 	fix     bool
 	write   bool
+	scope   string
 	files   []string
 }
 
@@ -51,9 +52,8 @@ func main() {
 		fatalf(usage)
 	}
 
-	var settings godot.Settings
-	if args.all {
-		settings.CheckAll = true
+	settings := godot.Settings{
+		Scope: godot.Scope(args.scope),
 	}
 
 	var paths []string
@@ -96,11 +96,12 @@ func main() {
 }
 
 func readArgs() (args arguments, err error) {
-	if len(os.Args) < 2 {
+	if len(os.Args) < 2 { // nolint: gomnd
 		return arguments{}, fmt.Errorf("not enough arguments")
 	}
 
-	for _, arg := range os.Args[1:] {
+	for i := 1; i < len(os.Args); i++ {
+		arg := os.Args[i]
 		if !strings.HasPrefix(arg, "-") {
 			args.files = append(args.files, arg)
 			continue
@@ -111,8 +112,21 @@ func readArgs() (args arguments, err error) {
 			args.help = true
 		case "-v", "--version":
 			args.version = true
-		case "-a", "--all":
-			args.all = true
+		case "-s", "--scope":
+			// Next argument must be scope value
+			if len(os.Args) < i+2 {
+				return arguments{}, fmt.Errorf("empty scope")
+			}
+			arg = os.Args[i+1]
+			i++
+
+			switch arg {
+			case string(godot.DeclScope),
+				string(godot.TopLevelScope):
+				args.scope = arg
+			default:
+				return arguments{}, fmt.Errorf("unknown scope '%s'", arg)
+			}
 		case "-f", "--fix":
 			args.fix = true
 		case "-w", "--write":

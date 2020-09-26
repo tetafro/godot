@@ -1,4 +1,4 @@
-// Package comment without a period [ALL]
+// Package comment without a period [TOP]
 package example
 
 /*
@@ -21,7 +21,7 @@ import (
 // #tag hashtag comment without period [PASS]
 
 /*
-Multiline comment without a period [ALL]
+Multiline comment without a period [TOP]
 
 */
 
@@ -29,23 +29,23 @@ Multiline comment without a period [ALL]
 Multiline comment with a period [PASS].
 */
 
-/* One-line comment without a period [ALL] */
+/* One-line comment without a period [TOP] */
 
 /* One-line comment with a period [PASS]. */
 
-// Single-line comment without a period [ALL]
+// Single-line comment without a period [TOP]
 
 // Single-line comment with a period [PASS].
 
-// Block comment [DEFAULT]
+// Block comment [DECL]
 const (
-	// Inside comment [DEFAULT]
+	// Inside comment [DECL]
 	constant1 = "constant1"
 	// Inside comment [PASS].
 	constant2 = "constant2"
 )
 
-// Declaration comment without a period [DEFAULT]
+// Declaration comment without a period [DECL]
 type SimpleObject struct {
 	// Exported field comment - always [PASS]
 	Type string
@@ -83,7 +83,7 @@ func Sum(a, b int) int {
 
 // Declaration multiline comment
 // second line
-// third line without a period [DEFAULT]
+// third line without a period [DECL]
 func Mult(a, b int) int {
 	return a * b
 }
@@ -93,7 +93,7 @@ func CgoExportedFunction(a, b int) int {
 	return a + b
 }
 
-// Кириллица [DEFAULT]
+// Кириллица [DECL]
 func NonLatin() string {
 	return "привет, мир"
 }

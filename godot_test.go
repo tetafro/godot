@@ -19,14 +19,14 @@ func TestGetComments(t *testing.T) {
 		t.Fatalf("Failed to parse input file: %v", err)
 	}
 
-	t.Run("default check", func(t *testing.T) {
-		comments := getComments(file, fset, false)
+	t.Run("scope: decl", func(t *testing.T) {
+		comments := getComments(file, fset, DeclScope)
 		var expected int
 		for _, c := range comments {
 			if strings.Contains(c.Text(), "[NONE]") {
 				continue
 			}
-			if strings.Contains(c.Text(), "[DEFAULT]") {
+			if strings.Contains(c.Text(), "[DECL]") {
 				expected++
 			}
 		}
@@ -38,15 +38,15 @@ func TestGetComments(t *testing.T) {
 		}
 	})
 
-	t.Run("check all", func(t *testing.T) {
-		comments := getComments(file, fset, true)
+	t.Run("scope: top", func(t *testing.T) {
+		comments := getComments(file, fset, TopLevelScope)
 		var expected int
 		for _, c := range comments {
 			if strings.Contains(c.Text(), "[NONE]") {
 				continue
 			}
-			if strings.Contains(c.Text(), "[DEFAULT]") ||
-				strings.Contains(c.Text(), "[ALL]") {
+			if strings.Contains(c.Text(), "[DECL]") ||
+				strings.Contains(c.Text(), "[TOP]") {
 				expected++
 			}
 		}
@@ -482,35 +482,35 @@ func TestRunIntegration(t *testing.T) {
 		t.Fatalf("Failed to parse input file: %v", err)
 	}
 
-	t.Run("default check", func(t *testing.T) {
+	t.Run("scope: decl", func(t *testing.T) {
 		var expected int
 		for _, c := range f.Comments {
 			if strings.Contains(c.Text(), "[PASS]") {
 				continue
 			}
-			if strings.Contains(c.Text(), "[DEFAULT]") {
+			if strings.Contains(c.Text(), "[DECL]") {
 				expected++
 			}
 		}
-		issues := Run(f, fset, Settings{CheckAll: false})
+		issues := Run(f, fset, Settings{Scope: DeclScope})
 		if len(issues) != expected {
 			t.Fatalf("Wrong number of result issues\n  expected: %d\n       got: %d",
 				expected, len(issues))
 		}
 	})
 
-	t.Run("check all", func(t *testing.T) {
+	t.Run("scope: top", func(t *testing.T) {
 		var expected int
 		for _, c := range f.Comments {
 			if strings.Contains(c.Text(), "[PASS]") {
 				continue
 			}
-			if strings.Contains(c.Text(), "[DEFAULT]") ||
-				strings.Contains(c.Text(), "[ALL]") {
+			if strings.Contains(c.Text(), "[DECL]") ||
+				strings.Contains(c.Text(), "[TOP]") {
 				expected++
 			}
 		}
-		issues := Run(f, fset, Settings{CheckAll: true})
+		issues := Run(f, fset, Settings{Scope: TopLevelScope})
 		if len(issues) != expected {
 			t.Fatalf("Wrong number of result issues\n  expected: %d\n       got: %d",
 				expected, len(issues))
@@ -549,10 +549,10 @@ func TestFixIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("default check", func(t *testing.T) {
-		expected := strings.ReplaceAll(string(content), "[DEFAULT]", "[DEFAULT].")
+	t.Run("scope: decl", func(t *testing.T) {
+		expected := strings.ReplaceAll(string(content), "[DECL]", "[DECL].")
 
-		fixed, err := Fix(testFile, file, fset, Settings{CheckAll: false})
+		fixed, err := Fix(testFile, file, fset, Settings{Scope: DeclScope})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -560,11 +560,11 @@ func TestFixIntegration(t *testing.T) {
 		assertEqualContent(t, expected, string(fixed))
 	})
 
-	t.Run("check all", func(t *testing.T) {
-		expected := strings.ReplaceAll(string(content), "[DEFAULT]", "[DEFAULT].")
-		expected = strings.ReplaceAll(expected, "[ALL]", "[ALL].")
+	t.Run("scope: top", func(t *testing.T) {
+		expected := strings.ReplaceAll(string(content), "[DECL]", "[DECL].")
+		expected = strings.ReplaceAll(expected, "[TOP]", "[TOP].")
 
-		fixed, err := Fix(testFile, file, fset, Settings{CheckAll: true})
+		fixed, err := Fix(testFile, file, fset, Settings{Scope: TopLevelScope})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -598,13 +598,13 @@ func TestReplaceIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("default check", func(t *testing.T) {
+	t.Run("scope: decl", func(t *testing.T) {
 		defer func() {
 			ioutil.WriteFile(testFile, content, mode) // nolint: errcheck,gosec
 		}()
-		expected := strings.ReplaceAll(string(content), "[DEFAULT]", "[DEFAULT].")
+		expected := strings.ReplaceAll(string(content), "[DECL]", "[DECL].")
 
-		if err := Replace(testFile, file, fset, Settings{CheckAll: false}); err != nil {
+		if err := Replace(testFile, file, fset, Settings{Scope: DeclScope}); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 		fixed, err := ioutil.ReadFile(testFile) // nolint: gosec
@@ -615,14 +615,14 @@ func TestReplaceIntegration(t *testing.T) {
 		assertEqualContent(t, expected, string(fixed))
 	})
 
-	t.Run("check all", func(t *testing.T) {
+	t.Run("scope: top", func(t *testing.T) {
 		defer func() {
 			ioutil.WriteFile(testFile, content, mode) // nolint: errcheck,gosec
 		}()
-		expected := strings.ReplaceAll(string(content), "[DEFAULT]", "[DEFAULT].")
-		expected = strings.ReplaceAll(expected, "[ALL]", "[ALL].")
+		expected := strings.ReplaceAll(string(content), "[DECL]", "[DECL].")
+		expected = strings.ReplaceAll(expected, "[TOP]", "[TOP].")
 
-		if err := Replace(testFile, file, fset, Settings{CheckAll: true}); err != nil {
+		if err := Replace(testFile, file, fset, Settings{Scope: TopLevelScope}); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 		fixed, err := ioutil.ReadFile(testFile) // nolint: gosec
