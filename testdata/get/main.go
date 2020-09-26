@@ -32,19 +32,19 @@ var (
 
 // Top level struct declaration comment [DEFAULT].
 type Thing struct {
-	// Field is a struct field example; field declaration comment
+	// Field is a struct field example; field declaration comment [NONE]
 	Field
 }
 
 // Example is an example function. Top level function declaration comment [DEFAULT].
-func Example() { // top level inline comment
-	// Regular comment
+func Example() { // top level inline comment [NONE]
+	// Regular comment [NONE]
 
-	// Declaration comment
+	// Declaration comment [NONE]
 	prn := func() {
-		// Nested comment
+		// Nested comment [NONE]
 		fmt.Println("hello, world")
 	}
 
-	prn() // inline comment
+	prn() // inline comment [NONE]
 }
