@@ -122,7 +122,8 @@ func readArgs() (args arguments, err error) {
 
 			switch arg {
 			case string(godot.DeclScope),
-				string(godot.TopLevelScope):
+				string(godot.TopLevelScope),
+				string(godot.AllScope):
 				args.scope = arg
 			default:
 				return arguments{}, fmt.Errorf("unknown scope '%s'", arg)

@@ -47,9 +47,9 @@ const (
 
 // Declaration comment without a period [DECL]
 type SimpleObject struct {
-	// Exported field comment - always [PASS]
+	// Exported field comment [ALL]
 	Type string
-	// Unexported field comment - always [PASS]
+	// Unexported field comment [ALL]
 	secret int
 }
 
@@ -57,9 +57,9 @@ type SimpleObject struct {
 //   co := ComplexObject{}
 //   fmt.Println(co) // [PASS]
 type ComplexObject struct {
-	// Exported field comment - always [PASS]
+	// Exported field comment [ALL]
 	Type string
-	// Unexported field comment - always [PASS]
+	// Unexported field comment [ALL]
 	secret int
 }
 
@@ -74,11 +74,11 @@ type Message struct {
 // second line
 // third line with a period [PASS].
 func Sum(a, b int) int {
-	// Inner comment - always [PASS]
+	// Inner comment [ALL]
 	a++
 	b++
 
-	return a + b // inline comment - always [PASS]
+	return a + b // inline comment [ALL]
 }
 
 // Declaration multiline comment
@@ -110,7 +110,7 @@ func noComment() {
 }
 
 func inside() {
-	// Not a top level declaration [PASS]
+	// Not a top level declaration [ALL]
 	type thing struct {
 		field string
 	}

@@ -19,44 +19,53 @@ func TestGetComments(t *testing.T) {
 		t.Fatalf("Failed to parse input file: %v", err)
 	}
 
-	t.Run("scope: decl", func(t *testing.T) {
-		comments := getComments(file, fset, DeclScope)
-		var expected int
-		for _, c := range comments {
-			if strings.Contains(c.Text(), "[NONE]") {
-				continue
-			}
-			if strings.Contains(c.Text(), "[DECL]") {
-				expected++
-			}
-		}
-		if len(comments) != expected {
-			t.Fatalf(
-				"Got wrong number of comments:\n  expected: %d\n       got: %d",
-				expected, len(comments),
-			)
-		}
-	})
+	testCases := []struct {
+		name     string
+		scope    Scope
+		contains []string
+	}{
+		{
+			name:     "scope: decl",
+			scope:    DeclScope,
+			contains: []string{"[DECL]"},
+		},
+		{
+			name:     "scope: top",
+			scope:    TopLevelScope,
+			contains: []string{"[DECL]", "[TOP]"},
+		},
+		{
+			name:     "scope: all",
+			scope:    AllScope,
+			contains: []string{"[DECL]", "[TOP]", "[ALL]"},
+		},
+	}
 
-	t.Run("scope: top", func(t *testing.T) {
-		comments := getComments(file, fset, TopLevelScope)
-		var expected int
-		for _, c := range comments {
-			if strings.Contains(c.Text(), "[NONE]") {
-				continue
+	for _, tt := range testCases {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			comments := getComments(file, fset, tt.scope)
+			var expected int
+			for _, c := range comments {
+				if strings.Contains(c.Text(), "[NONE]") {
+					continue
+				}
+				text := c.Text()
+				for _, s := range tt.contains {
+					if strings.Contains(text, s) {
+						expected++
+						break
+					}
+				}
 			}
-			if strings.Contains(c.Text(), "[DECL]") ||
-				strings.Contains(c.Text(), "[TOP]") {
-				expected++
+			if len(comments) != expected {
+				t.Fatalf(
+					"Got wrong number of comments:\n  expected: %d\n       got: %d",
+					expected, len(comments),
+				)
 			}
-		}
-		if len(comments) != expected {
-			t.Fatalf(
-				"Got wrong number of comments:\n  expected: %d\n       got: %d",
-				expected, len(comments),
-			)
-		}
-	})
+		})
+	}
 }
 
 func TestGetText(t *testing.T) {
@@ -475,47 +484,57 @@ func TestHasSuffix(t *testing.T) {
 
 func TestRunIntegration(t *testing.T) {
 	testFile := filepath.Join("testdata", "check", "main.go")
-
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
 	if err != nil {
 		t.Fatalf("Failed to parse input file: %v", err)
 	}
 
-	t.Run("scope: decl", func(t *testing.T) {
-		var expected int
-		for _, c := range f.Comments {
-			if strings.Contains(c.Text(), "[PASS]") {
-				continue
-			}
-			if strings.Contains(c.Text(), "[DECL]") {
-				expected++
-			}
-		}
-		issues := Run(f, fset, Settings{Scope: DeclScope})
-		if len(issues) != expected {
-			t.Fatalf("Wrong number of result issues\n  expected: %d\n       got: %d",
-				expected, len(issues))
-		}
-	})
+	testCases := []struct {
+		name     string
+		scope    Scope
+		contains []string
+	}{
+		{
+			name:     "scope: decl",
+			scope:    DeclScope,
+			contains: []string{"[DECL]"},
+		},
+		{
+			name:     "scope: top",
+			scope:    TopLevelScope,
+			contains: []string{"[DECL]", "[TOP]"},
+		},
+		{
+			name:     "scope: all",
+			scope:    AllScope,
+			contains: []string{"[DECL]", "[TOP]", "[ALL]"},
+		},
+	}
 
-	t.Run("scope: top", func(t *testing.T) {
-		var expected int
-		for _, c := range f.Comments {
-			if strings.Contains(c.Text(), "[PASS]") {
-				continue
+	for _, tt := range testCases {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			var expected int
+			for _, c := range f.Comments {
+				if strings.Contains(c.Text(), "[PASS]") {
+					continue
+				}
+				text := c.Text()
+				for _, s := range tt.contains {
+					if strings.Contains(text, s) {
+						expected++
+						break
+					}
+				}
 			}
-			if strings.Contains(c.Text(), "[DECL]") ||
-				strings.Contains(c.Text(), "[TOP]") {
-				expected++
+			issues := Run(f, fset, Settings{Scope: tt.scope})
+			if len(issues) != expected {
+				t.Fatalf("Wrong number of result issues\n  expected: %d\n       got: %d",
+					expected, len(issues))
 			}
-		}
-		issues := Run(f, fset, Settings{Scope: TopLevelScope})
-		if len(issues) != expected {
-			t.Fatalf("Wrong number of result issues\n  expected: %d\n       got: %d",
-				expected, len(issues))
-		}
-	})
+		})
+	}
 }
 
 func TestFixIntegration(t *testing.T) {
@@ -565,6 +584,19 @@ func TestFixIntegration(t *testing.T) {
 		expected = strings.ReplaceAll(expected, "[TOP]", "[TOP].")
 
 		fixed, err := Fix(testFile, file, fset, Settings{Scope: TopLevelScope})
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
+		assertEqualContent(t, expected, string(fixed))
+	})
+
+	t.Run("scope: all", func(t *testing.T) {
+		expected := strings.ReplaceAll(string(content), "[DECL]", "[DECL].")
+		expected = strings.ReplaceAll(expected, "[TOP]", "[TOP].")
+		expected = strings.ReplaceAll(expected, "[ALL]", "[ALL].")
+
+		fixed, err := Fix(testFile, file, fset, Settings{Scope: AllScope})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -621,8 +653,9 @@ func TestReplaceIntegration(t *testing.T) {
 		}()
 		expected := strings.ReplaceAll(string(content), "[DECL]", "[DECL].")
 		expected = strings.ReplaceAll(expected, "[TOP]", "[TOP].")
+		expected = strings.ReplaceAll(expected, "[ALL]", "[ALL].")
 
-		if err := Replace(testFile, file, fset, Settings{Scope: TopLevelScope}); err != nil {
+		if err := Replace(testFile, file, fset, Settings{Scope: AllScope}); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 		fixed, err := ioutil.ReadFile(testFile) // nolint: gosec

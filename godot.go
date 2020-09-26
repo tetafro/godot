@@ -31,6 +31,8 @@ const (
 	DeclScope Scope = "decl"
 	// TopLevelScope is for all top level comments.
 	TopLevelScope Scope = "top"
+	// AllScope is for all comments.
+	AllScope Scope = "all"
 )
 
 // Settings contains linter settings.
@@ -143,6 +145,10 @@ func sortIssues(iss []Issue) {
 // getComments extracts comments from a file.
 func getComments(file *ast.File, fset *token.FileSet, scope Scope) []*ast.CommentGroup {
 	var comments []*ast.CommentGroup
+
+	if scope == AllScope {
+		return file.Comments
+	}
 
 	// Get comments from the inside of top level blocks: var (...), const (...)
 	for _, decl := range file.Decls {
