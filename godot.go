@@ -173,10 +173,14 @@ func getComments(file *ast.File, fset *token.FileSet, all bool) []*ast.CommentGr
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {
 		case *ast.GenDecl:
+			if d.Doc != nil {
 			comments = append(comments, d.Doc)
+			}
 		case *ast.FuncDecl:
+			if d.Doc != nil {
 			comments = append(comments, d.Doc)
 		}
+	}
 	}
 	return comments
 }
