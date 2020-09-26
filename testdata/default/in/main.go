@@ -109,4 +109,13 @@ func noComment() {
 	C.free(unsafe.Pointer(cs))
 }
 
+func inside() {
+	// Not a top level declaration PASS
+	type thing struct {
+		field string
+	}
+	t := thing{}
+	println(t)
+}
+
 // Comment with a URL - http://example.com/PASS

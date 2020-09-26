@@ -135,7 +135,7 @@ func sortIssues(iss []Issue) {
 func getComments(file *ast.File, fset *token.FileSet, all bool) []*ast.CommentGroup {
 	var comments []*ast.CommentGroup
 
-	// Get comments from top level blocks: var (...), const (...)
+	// Get comments from the inside of top level blocks: var (...), const (...)
 	for _, decl := range file.Decls {
 		d, ok := decl.(*ast.GenDecl)
 		if !ok {
@@ -174,13 +174,13 @@ func getComments(file *ast.File, fset *token.FileSet, all bool) []*ast.CommentGr
 		switch d := decl.(type) {
 		case *ast.GenDecl:
 			if d.Doc != nil {
-			comments = append(comments, d.Doc)
+				comments = append(comments, d.Doc)
 			}
 		case *ast.FuncDecl:
 			if d.Doc != nil {
-			comments = append(comments, d.Doc)
+				comments = append(comments, d.Doc)
+			}
 		}
-	}
 	}
 	return comments
 }

@@ -11,6 +11,48 @@ import (
 	"testing"
 )
 
+func TestGetComments(t *testing.T) {
+	testFile := filepath.Join("testdata", "get", "main.go")
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("Failed to parse input file: %v", err)
+	}
+
+	t.Run("default mode", func(t *testing.T) {
+		comments := getComments(file, fset, false)
+		var expected int
+		for _, c := range comments {
+			if strings.Contains(c.Text(), "[DEFAULT]") {
+				expected++
+			}
+		}
+		if len(comments) != expected {
+			t.Fatalf(
+				"Got wrong number of comments:\n  expected: %d\n       got: %d",
+				expected, len(comments),
+			)
+		}
+	})
+
+	t.Run("get-all mode", func(t *testing.T) {
+		comments := getComments(file, fset, true)
+		var expected int
+		for _, c := range comments {
+			if strings.Contains(c.Text(), "[DEFAULT]") ||
+				strings.Contains(c.Text(), "[ALL]") {
+				expected++
+			}
+		}
+		if len(comments) != expected {
+			t.Fatalf(
+				"Got wrong number of comments:\n  expected: %d\n       got: %d",
+				expected, len(comments),
+			)
+		}
+	})
+}
+
 func TestGetText(t *testing.T) {
 	testCases := []struct {
 		name    string
