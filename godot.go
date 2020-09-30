@@ -235,7 +235,11 @@ func getBlockComments(file *ast.File, fset *token.FileSet, lines []string) ([]co
 			firstLine := fset.Position(c.Pos()).Line
 			lastLine := fset.Position(c.End()).Line
 			if lastLine >= len(lines) {
-				return nil, fmt.Errorf("invalid line number for comment: %d", lastLine)
+				return nil, fmt.Errorf(
+					"invalid line number inside comment: %s:%d",
+					fset.Position(c.Pos()).Filename,
+					fset.Position(c.Pos()).Line,
+				)
 			}
 			comments = append(comments, comment{
 				ast:   c,
@@ -256,7 +260,11 @@ func getTopLevelComments(file *ast.File, fset *token.FileSet, lines []string) ([
 		firstLine := fset.Position(c.Pos()).Line
 		lastLine := fset.Position(c.End()).Line
 		if lastLine >= len(lines) {
-			return nil, fmt.Errorf("invalid line number for comment: %d", lastLine)
+			return nil, fmt.Errorf(
+				"invalid line number inside comment: %s:%d",
+				fset.Position(c.Pos()).Filename,
+				fset.Position(c.Pos()).Line,
+			)
 		}
 		comments = append(comments, comment{
 			ast:   c,
@@ -276,7 +284,11 @@ func getDeclarationComments(file *ast.File, fset *token.FileSet, lines []string)
 				firstLine := fset.Position(d.Doc.Pos()).Line
 				lastLine := fset.Position(d.Doc.End()).Line
 				if lastLine >= len(lines) {
-					return nil, fmt.Errorf("invalid line number for comment: %d", lastLine)
+					return nil, fmt.Errorf(
+						"invalid line number inside comment: %s:%d",
+						fset.Position(d.Doc.Pos()).Filename,
+						fset.Position(d.Doc.Pos()).Line,
+					)
 				}
 				comments = append(comments, comment{
 					ast:   d.Doc,
@@ -288,7 +300,11 @@ func getDeclarationComments(file *ast.File, fset *token.FileSet, lines []string)
 				firstLine := fset.Position(d.Doc.Pos()).Line
 				lastLine := fset.Position(d.Doc.End()).Line
 				if lastLine >= len(lines) {
-					return nil, fmt.Errorf("invalid line number for comment: %d", lastLine)
+					return nil, fmt.Errorf(
+						"invalid line number inside comment: %s:%d",
+						fset.Position(d.Doc.Pos()).Filename,
+						fset.Position(d.Doc.Pos()).Line,
+					)
 				}
 				comments = append(comments, comment{
 					ast:   d.Doc,
@@ -378,7 +394,7 @@ func getText(comment *ast.CommentGroup) (s string) {
 	if len(comment.List) == 1 &&
 		strings.HasPrefix(comment.List[0].Text, "/*") &&
 		isSpecialBlock(comment.List[0].Text) {
-		return strings.Repeat("\n", len(comment.List[0].Text)-1)
+		return ""
 	}
 
 	for _, c := range comment.List {
