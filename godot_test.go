@@ -135,6 +135,39 @@ func TestGetText(t *testing.T) {
 			}},
 			text: "// One\n//\n// .\n// Two\n// .\n// Three\n// .\n// .",
 		},
+		{
+			name: "cgo block",
+			comment: &ast.CommentGroup{List: []*ast.Comment{
+				{Text: "/*\n" +
+					"#include <stdio.h>\n" +
+					"#include <stdlib.h>\n" +
+					"void myprint(char* s) {\n" +
+					"\tprintf(s);\n" +
+					"}\n" +
+					"*/"},
+			}},
+			text: "",
+		},
+		{
+			name: "multiline block with a code example",
+			comment: &ast.CommentGroup{List: []*ast.Comment{
+				{Text: "/*\n" +
+					"Example:\n" +
+					"\tn := rand.Int()\n" +
+					"\tfmt.Println(n)\n" +
+					"*/"},
+			}},
+			text: "/*\n" +
+				"Example:\n" +
+				".\n" +
+				".\n" +
+				"*/",
+		},
+		{
+			name:    "empty comment group",
+			comment: &ast.CommentGroup{List: []*ast.Comment{}},
+			text:    "",
+		},
 	}
 
 	for _, tt := range testCases {
