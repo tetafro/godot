@@ -44,13 +44,16 @@ func TestGetComments(t *testing.T) {
 	for _, tt := range testCases {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			comments := getComments(file, fset, tt.scope)
+			comments, err := getComments(file, fset, tt.scope)
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
 			var expected int
 			for _, c := range comments {
-				if strings.Contains(c.Text(), "[NONE]") {
+				if strings.Contains(c.ast.Text(), "[NONE]") {
 					continue
 				}
-				text := c.Text()
+				text := c.ast.Text()
 				for _, s := range tt.contains {
 					if strings.Contains(text, s) {
 						expected++
@@ -146,11 +149,10 @@ func TestGetText(t *testing.T) {
 
 func TestCheckText(t *testing.T) {
 	testCases := []struct {
-		name        string
-		comment     string
-		ok          bool
-		issue       position
-		replacement string
+		name    string
+		comment string
+		ok      bool
+		issue   position
 	}{
 		{
 			name:    "sentence with period, singleline comment",
@@ -178,28 +180,24 @@ func TestCheckText(t *testing.T) {
 			ok:      true,
 		},
 		{
-			name:        "no period, singleline comment",
-			comment:     "// Hello, world",
-			issue:       position{line: 1, column: 16},
-			replacement: "// Hello, world.",
+			name:    "no period, singleline comment",
+			comment: "// Hello, world",
+			issue:   position{line: 1, column: 16},
 		},
 		{
-			name:        "no period, multiline block",
-			comment:     "/*\nHello, world\n*/",
-			issue:       position{line: 2, column: 13},
-			replacement: "Hello, world.",
+			name:    "no period, multiline block",
+			comment: "/*\nHello, world\n*/",
+			issue:   position{line: 2, column: 13},
 		},
 		{
-			name:        "no period, multiline block, single line",
-			comment:     "/* Hello, world */",
-			issue:       position{line: 1, column: 16},
-			replacement: "/* Hello, world. */",
+			name:    "no period, multiline block, single line",
+			comment: "/* Hello, world */",
+			issue:   position{line: 1, column: 16},
 		},
 		{
-			name:        "no period, set of single line comments",
-			comment:     "// Hello,\n// world",
-			issue:       position{line: 2, column: 9},
-			replacement: "// world.",
+			name:    "no period, set of single line comments",
+			comment: "// Hello,\n// world",
+			issue:   position{line: 2, column: 9},
 		},
 		{
 			name:    "question mark",
@@ -247,10 +245,9 @@ func TestCheckText(t *testing.T) {
 			ok:      true,
 		},
 		{
-			name:        "// cyrillic, without period",
-			comment:     "// Кириллица",
-			issue:       position{line: 1, column: 13},
-			replacement: "// Кириллица.",
+			name:    "// cyrillic, without period",
+			comment: "// Кириллица",
+			issue:   position{line: 1, column: 13},
 		},
 		{
 			name:    "parenthesis, with period",
@@ -258,10 +255,9 @@ func TestCheckText(t *testing.T) {
 			ok:      true,
 		},
 		{
-			name:        "parenthesis, without period",
-			comment:     "// Hello. (World)",
-			issue:       position{line: 1, column: 18},
-			replacement: "// Hello. (World).",
+			name:    "parenthesis, without period",
+			comment: "// Hello. (World)",
+			issue:   position{line: 1, column: 18},
 		},
 		{
 			name:    "single closing parenthesis with period",
@@ -269,17 +265,16 @@ func TestCheckText(t *testing.T) {
 			ok:      true,
 		},
 		{
-			name:        "single closing parenthesis without period",
-			comment:     "// )",
-			issue:       position{line: 1, column: 5},
-			replacement: "// ).",
+			name:    "single closing parenthesis without period",
+			comment: "// )",
+			issue:   position{line: 1, column: 5},
 		},
 	}
 
 	for _, tt := range testCases {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			pos, rep, ok := checkText(tt.comment)
+			pos, ok := checkText(tt.comment)
 			if ok != tt.ok {
 				t.Fatalf("Wrong result\n  expected: %v\n       got: %v", tt.ok, ok)
 			}
@@ -288,9 +283,6 @@ func TestCheckText(t *testing.T) {
 			}
 			if pos.column != tt.issue.column {
 				t.Fatalf("Wrong column\n  expected: %d\n       got: %d", tt.issue.column, pos.column)
-			}
-			if rep != tt.replacement {
-				t.Fatalf("Wrong replacement\n  expected: %s\n       got: %s", tt.replacement, rep)
 			}
 		})
 	}
@@ -482,7 +474,7 @@ func TestHasSuffix(t *testing.T) {
 	}
 }
 
-func TestRunIntegration(t *testing.T) {
+func TestRun(t *testing.T) {
 	testFile := filepath.Join("testdata", "check", "main.go")
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
@@ -520,15 +512,17 @@ func TestRunIntegration(t *testing.T) {
 				if strings.Contains(c.Text(), "[PASS]") {
 					continue
 				}
-				text := c.Text()
 				for _, s := range tt.contains {
-					if strings.Contains(text, s) {
+					if strings.Contains(c.Text(), s) {
 						expected++
 						break
 					}
 				}
 			}
-			issues := Run(f, fset, Settings{Scope: tt.scope})
+			issues, err := Run(f, fset, Settings{Scope: tt.scope})
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
 			if len(issues) != expected {
 				t.Fatalf("Wrong number of result issues\n  expected: %d\n       got: %d",
 					expected, len(issues))
@@ -537,7 +531,7 @@ func TestRunIntegration(t *testing.T) {
 	}
 }
 
-func TestFixIntegration(t *testing.T) {
+func TestFix(t *testing.T) {
 	testFile := filepath.Join("testdata", "check", "main.go")
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
@@ -605,7 +599,7 @@ func TestFixIntegration(t *testing.T) {
 	})
 }
 
-func TestReplaceIntegration(t *testing.T) {
+func TestReplace(t *testing.T) {
 	testFile := filepath.Join("testdata", "check", "main.go")
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)

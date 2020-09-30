@@ -20,14 +20,14 @@ comment block [TOP].
 
 // Top level comment for block of constants [DECL].
 const (
-	// Const1 is an example constant. Top level declaration comment inside a block [DECL].
-	Const1 = 1
+	// Const is an example constant. Top level declaration comment inside a block [DECL].
+	Const = 1
 )
 
 // Top level comment for block of variables [DECL].
 var (
-	// Var1 is an example variable. Top level declaration comment inside a block [DECL].
-	Var1 = 1
+	// Var is an example variable. Top level declaration comment inside a block [DECL].
+	Var = 1
 )
 
 // Top level struct declaration comment [DECL].

@@ -3,17 +3,20 @@
 package godot
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
+	"go/format"
 	"go/token"
 	"io/ioutil"
 	"os"
 	"regexp"
 	"sort"
 	"strings"
+	"unicode"
 )
 
-// CAUTION: Line and column indexes start from 1.
+// CAUTION: Line and column indexes are 1-based.
 
 const (
 	// noPeriodMessage is an error message to return.
@@ -53,6 +56,14 @@ type position struct {
 	column int
 }
 
+// comment is an internal representation of AST comment entity with rendered
+// lines attached. The latter is used for creating a full replacement for
+// the line with issues.
+type comment struct {
+	ast   *ast.CommentGroup
+	lines []string
+}
+
 var (
 	// List of valid sentence ending.
 	// NOTE: Sentence can be inside parenthesis, and therefore ends
@@ -70,11 +81,19 @@ var (
 )
 
 // Run runs this linter on the provided code.
-func Run(file *ast.File, fset *token.FileSet, settings Settings) []Issue {
-	comments := getComments(file, fset, settings.Scope)
-	issues := checkComments(fset, comments)
+func Run(file *ast.File, fset *token.FileSet, settings Settings) ([]Issue, error) {
+	comments, err := getComments(file, fset, settings.Scope)
+	if err != nil {
+		return nil, fmt.Errorf("get comments: %v", err)
+	}
+
+	issues, err := checkComments(fset, comments)
+	if err != nil {
+		return nil, fmt.Errorf("check comments: %v", err)
+	}
+
 	sortIssues(issues)
-	return issues
+	return issues, nil
 }
 
 // Fix fixes all issues and returns new version of file content.
@@ -88,7 +107,10 @@ func Fix(path string, file *ast.File, fset *token.FileSet, settings Settings) ([
 		return nil, nil
 	}
 
-	issues := Run(file, fset, settings)
+	issues, err := Run(file, fset, settings)
+	if err != nil {
+		return nil, fmt.Errorf("run linter: %v", err)
+	}
 
 	// slice -> map
 	m := map[int]Issue{}
@@ -143,14 +165,55 @@ func sortIssues(iss []Issue) {
 }
 
 // getComments extracts comments from a file.
-func getComments(file *ast.File, fset *token.FileSet, scope Scope) []*ast.CommentGroup {
-	var comments []*ast.CommentGroup
+func getComments(file *ast.File, fset *token.FileSet, scope Scope) ([]comment, error) {
+	var comments []comment
 
+	// Render AST representation to a string
+	var buf bytes.Buffer
+	if err := format.Node(&buf, fset, file); err != nil {
+		return nil, fmt.Errorf("render file: %v", err)
+	}
+	lines := strings.Split(buf.String(), "\n")
+
+	// All comments
 	if scope == AllScope {
-		return file.Comments
+		cc, err := getAllComments(file, fset, lines)
+		if err != nil {
+			return nil, fmt.Errorf("get all comments: %v", err)
+		}
+		return append(comments, cc...), nil
 	}
 
-	// Get comments from the inside of top level blocks: var (...), const (...)
+	// Comments from the inside of top level blocks
+	cc, err := getBlockComments(file, fset, lines)
+	if err != nil {
+		return nil, fmt.Errorf("get block comments: %v", err)
+	}
+	comments = append(comments, cc...)
+
+	// All top level comments
+	if scope == TopLevelScope {
+		cc, err := getTopLevelComments(file, fset, lines)
+		if err != nil {
+			return nil, fmt.Errorf("get top level comments: %v", err)
+		}
+		return append(comments, cc...), nil
+	}
+
+	// Top level declaration comments
+	cc, err = getDeclarationComments(file, fset, lines)
+	if err != nil {
+		return nil, fmt.Errorf("get declaration comments: %v", err)
+	}
+	comments = append(comments, cc...)
+
+	return comments, nil
+}
+
+// getBlockComments gets comments from the inside of top level
+// blocks: var (...), const (...).
+func getBlockComments(file *ast.File, fset *token.FileSet, lines []string) ([]comment, error) {
+	var comments []comment
 	for _, decl := range file.Decls {
 		d, ok := decl.(*ast.GenDecl)
 		if !ok {
@@ -160,59 +223,113 @@ func getComments(file *ast.File, fset *token.FileSet, scope Scope) []*ast.Commen
 		if d.Lparen == 0 {
 			continue
 		}
-		for _, group := range file.Comments {
+		for _, c := range file.Comments {
 			// Skip comments outside this block
-			if d.Lparen > group.Pos() || group.Pos() > d.Rparen {
+			if d.Lparen > c.Pos() || c.Pos() > d.Rparen {
 				continue
 			}
 			// Skip comments that are not top-level for this block
-			if fset.Position(group.Pos()).Column != topLevelColumn+1 {
+			if fset.Position(c.Pos()).Column != topLevelColumn+1 {
 				continue
 			}
-			comments = append(comments, group)
-		}
-	}
-
-	// Get all top level comments
-	if scope == TopLevelScope {
-		for _, comment := range file.Comments {
-			if fset.Position(comment.Pos()).Column != topLevelColumn {
-				continue
+			firstLine := fset.Position(c.Pos()).Line
+			lastLine := fset.Position(c.End()).Line
+			if lastLine >= len(lines) {
+				return nil, fmt.Errorf("invalid line number for comment: %d", lastLine)
 			}
-			comments = append(comments, comment)
+			comments = append(comments, comment{
+				ast:   c,
+				lines: lines[firstLine-1 : lastLine],
+			})
 		}
-		return comments
 	}
+	return comments, nil
+}
 
-	// Get top level declaration comments
+// getTopLevelComments gets all top level comments.
+func getTopLevelComments(file *ast.File, fset *token.FileSet, lines []string) ([]comment, error) {
+	var comments []comment // nolint: prealloc
+	for _, c := range file.Comments {
+		if fset.Position(c.Pos()).Column != topLevelColumn {
+			continue
+		}
+		firstLine := fset.Position(c.Pos()).Line
+		lastLine := fset.Position(c.End()).Line
+		if lastLine >= len(lines) {
+			return nil, fmt.Errorf("invalid line number for comment: %d", lastLine)
+		}
+		comments = append(comments, comment{
+			ast:   c,
+			lines: lines[firstLine-1 : lastLine],
+		})
+	}
+	return comments, nil
+}
+
+// getDeclarationComments gets top level declaration comments.
+func getDeclarationComments(file *ast.File, fset *token.FileSet, lines []string) ([]comment, error) {
+	var comments []comment
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {
 		case *ast.GenDecl:
 			if d.Doc != nil {
-				comments = append(comments, d.Doc)
+				firstLine := fset.Position(d.Doc.Pos()).Line
+				lastLine := fset.Position(d.Doc.End()).Line
+				if lastLine >= len(lines) {
+					return nil, fmt.Errorf("invalid line number for comment: %d", lastLine)
+				}
+				comments = append(comments, comment{
+					ast:   d.Doc,
+					lines: lines[firstLine-1 : lastLine],
+				})
 			}
 		case *ast.FuncDecl:
 			if d.Doc != nil {
-				comments = append(comments, d.Doc)
+				firstLine := fset.Position(d.Doc.Pos()).Line
+				lastLine := fset.Position(d.Doc.End()).Line
+				if lastLine >= len(lines) {
+					return nil, fmt.Errorf("invalid line number for comment: %d", lastLine)
+				}
+				comments = append(comments, comment{
+					ast:   d.Doc,
+					lines: lines[firstLine-1 : lastLine],
+				})
 			}
 		}
 	}
-	return comments
+	return comments, nil
+}
+
+// getAllComments gets every single comment from the file.
+func getAllComments(file *ast.File, fset *token.FileSet, lines []string) ([]comment, error) {
+	var comments []comment //nolint: prealloc
+	for _, c := range file.Comments {
+		firstLine := fset.Position(c.Pos()).Line
+		lastLine := fset.Position(c.End()).Line
+		if lastLine >= len(lines) {
+			return nil, fmt.Errorf("invalid line number for comment: %d", lastLine)
+		}
+		comments = append(comments, comment{
+			ast:   c,
+			lines: lines[firstLine-1 : lastLine],
+		})
+	}
+	return comments, nil
 }
 
 // checkComments checks that every comment ends with a period.
-func checkComments(fset *token.FileSet, comments []*ast.CommentGroup) []Issue {
+func checkComments(fset *token.FileSet, comments []comment) ([]Issue, error) {
 	var issues []Issue // nolint: prealloc
-	for _, comment := range comments {
-		if comment == nil || len(comment.List) == 0 {
+	for _, c := range comments {
+		if c.ast == nil || len(c.ast.List) == 0 {
 			continue
 		}
 
-		start := fset.Position(comment.List[0].Slash)
-		indent := strings.Repeat("\t", start.Column-1)
+		// Save global line number and indent
+		start := fset.Position(c.ast.List[0].Slash)
 
-		text := getText(comment)
-		pos, rep, ok := checkText(text)
+		text := getText(c.ast)
+		pos, ok := checkText(text)
 		if ok {
 			continue
 		}
@@ -221,16 +338,35 @@ func checkComments(fset *token.FileSet, comments []*ast.CommentGroup) []Issue {
 			Pos: token.Position{
 				Filename: start.Filename,
 				Offset:   start.Offset,
-				Line:     start.Line + pos.line - 1,
-				Column:   start.Column + pos.column - 1,
+				Line:     pos.line + start.Line - 1,
+				Column:   pos.column + start.Column - 1,
 			},
-			Message:     noPeriodMessage,
-			Replacement: indent + rep,
+			Message: noPeriodMessage,
 		}
+
+		// Make a replacement. Use `pos.line` to get an original line from
+		// attached lines. Use `iss.Pos.Column` because it's a position in
+		// the original line.
+		if pos.line-1 >= len(c.lines) {
+			return nil, fmt.Errorf(
+				"invalid line number inside comment: %s:%d",
+				iss.Pos.Filename, iss.Pos.Line,
+			)
+		}
+		original := []rune(c.lines[pos.line-1])
+		if iss.Pos.Column-1 > len(original) {
+			return nil, fmt.Errorf(
+				"invalid column number inside comment: %s:%d:%d",
+				iss.Pos.Filename, iss.Pos.Line, iss.Pos.Column,
+			)
+		}
+		iss.Replacement = fmt.Sprintf("%s.%s",
+			string(original[:iss.Pos.Column-1]),
+			string(original[iss.Pos.Column-1:]))
 
 		issues = append(issues, iss)
 	}
-	return issues
+	return issues, nil
 }
 
 // getText extracts text from comment. If comment is a special block
@@ -265,22 +401,21 @@ func getText(comment *ast.CommentGroup) (s string) {
 }
 
 // checkText checks extracted text from comment structure, and returns position
-// of the an issue if found and a replacement for it.
+// of the issue if found.
 // NOTE: Returned position is a position inside given text, not position in
 // the original file.
-func checkText(comment string) (pos position, replacement string, ok bool) {
+func checkText(comment string) (pos position, ok bool) {
 	isBlock := strings.HasPrefix(comment, "/*")
 
 	// Check last non-empty line
 	var found bool
-	var line string
-	var prefix, suffix string
+	var line, prefix string
 	lines := strings.Split(comment, "\n")
 	for i := len(lines) - 1; i >= 0; i-- {
 		line = lines[i]
 
 		// Trim //, /*, */ and save them
-		suffix, prefix = "", ""
+		prefix = ""
 		if !isBlock {
 			line = strings.TrimPrefix(line, "//")
 			prefix = "//"
@@ -290,17 +425,11 @@ func checkText(comment string) (pos position, replacement string, ok bool) {
 			prefix = "/*"
 		}
 		if isBlock && i == len(lines)-1 {
-			if strings.HasSuffix(line, " */") {
-				line = strings.TrimSuffix(line, " */")
-				suffix = " */"
-			}
-			if strings.HasSuffix(line, "*/") {
-				line = strings.TrimSuffix(line, "*/")
-				suffix = "*/"
-			}
+			line = strings.TrimSuffix(line, "*/")
 		}
 
-		if strings.TrimSpace(line) == "" {
+		line = strings.TrimRightFunc(line, unicode.IsSpace)
+		if line == "" {
 			continue
 		}
 
@@ -310,16 +439,15 @@ func checkText(comment string) (pos position, replacement string, ok bool) {
 	}
 	// All lines are empty
 	if !found {
-		return position{}, "", true
+		return position{}, true
 	}
 	// Correct line
-	if hasSuffix(strings.TrimSpace(line), lastChars) {
-		return position{}, "", true
+	if hasSuffix(line, lastChars) {
+		return position{}, true
 	}
 
 	pos.column = len([]rune(prefix+line)) + 1
-	replacement = prefix + line + "." + suffix
-	return pos, replacement, false
+	return pos, false
 }
 
 // isSpecialBlock checks that given block of comment lines is special and

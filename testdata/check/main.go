@@ -114,7 +114,7 @@ func inside() {
 	type thing struct {
 		field string
 	}
-	t := thing{}
+	t := thing{} // Inline comment [ALL]
 	println(t)
 }
 

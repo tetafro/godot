@@ -17,13 +17,16 @@ var version = "master"
 
 // nolint: lll
 const usage = `Usage:
-	godot [OPTION] [FILES]
+    godot [OPTION] [FILES]
 Options:
-	-s, --scope     set scope for check (decl for top level declaration comments, top for top level comments, all for all comments)
-	-f, --fix       fix issues, and print fixed version to stdout
-	-h, --help      show this message
-	-v, --version   show version
-	-w, --write     fix issues, and write result to original file`
+    -s, --scope     set scope for check
+                    decl - for top level declaration comments
+                    top  - for top level comments
+                    all  - for all comments
+    -f, --fix       fix issues, and print fixed version to stdout
+    -h, --help      show this message
+    -v, --version   show version
+    -w, --write     fix issues, and write result to original file`
 
 type arguments struct {
 	help    bool
@@ -47,9 +50,6 @@ func main() {
 	if args.version {
 		fmt.Println(version)
 		os.Exit(0)
-	}
-	if len(args.files) == 0 {
-		fatalf(usage)
 	}
 
 	settings := godot.Settings{
@@ -87,7 +87,10 @@ func main() {
 				fatalf("Failed to rewrite file '%s': %v", paths[i], err)
 			}
 		default:
-			issues := godot.Run(files[i], fset, settings)
+			issues, err := godot.Run(files[i], fset, settings)
+			if err != nil {
+				fatalf("Failed to run linter on file '%s': %v", paths[i], err)
+			}
 			for _, iss := range issues {
 				fmt.Printf("%s: %s\n", iss.Message, iss.Pos)
 			}
@@ -136,6 +139,11 @@ func readArgs() (args arguments, err error) {
 			return arguments{}, fmt.Errorf("unknown flag '%s'", arg)
 		}
 	}
+
+	if len(args.files) == 0 {
+		return arguments{}, fmt.Errorf("files list is empty")
+	}
+
 	return args, nil
 }
 
