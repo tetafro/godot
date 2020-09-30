@@ -21,7 +21,7 @@ end of the last sentence if needed.
 Build from source
 
 ```sh
-go get -u github.com/tetafro/godot/cmd/godot
+go get -u github.com/tetafro/godot/v2/cmd/godot
 ```
 
 or download binary from [releases page](https://github.com/tetafro/godot/releases).
