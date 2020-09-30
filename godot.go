@@ -18,6 +18,9 @@ import (
 
 // CAUTION: Line and column indexes are 1-based.
 
+// NOTE: Errors `invalid line number inside comment...` should never happen.
+// Their goal is to prevent panic, if there's a bug with array indexes.
+
 const (
 	// noPeriodMessage is an error message to return.
 	noPeriodMessage = "Comment should end in a period"
@@ -323,7 +326,11 @@ func getAllComments(file *ast.File, fset *token.FileSet, lines []string) ([]comm
 		firstLine := fset.Position(c.Pos()).Line
 		lastLine := fset.Position(c.End()).Line
 		if lastLine >= len(lines) {
-			return nil, fmt.Errorf("invalid line number for comment: %d", lastLine)
+			return nil, fmt.Errorf(
+				"invalid line number inside comment: %s:%d",
+				fset.Position(c.Pos()).Filename,
+				fset.Position(c.Pos()).Line,
+			)
 		}
 		comments = append(comments, comment{
 			ast:   c,
