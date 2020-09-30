@@ -140,7 +140,7 @@ func readArgs() (args arguments, err error) {
 		}
 	}
 
-	if len(args.files) == 0 {
+	if !args.help && !args.version && len(args.files) == 0 {
 		return arguments{}, fmt.Errorf("files list is empty")
 	}
 
