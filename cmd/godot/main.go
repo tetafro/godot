@@ -103,8 +103,18 @@ func readArgs() (args arguments, err error) {
 		return arguments{}, fmt.Errorf("not enough arguments")
 	}
 
+	// Split `--arg=x` arguments
+	input := make([]string, 0, len(os.Args)-1)
 	for i := 1; i < len(os.Args); i++ {
-		arg := os.Args[i]
+		splitted := strings.Split(os.Args[i], "=")
+		if len(splitted) > 2 { // nolint: go-lint
+			return arguments{}, fmt.Errorf("invalid argument '%s'", os.Args[i])
+		}
+		input = append(input, splitted...)
+	}
+
+	for i := 0; i < len(input); i++ {
+		arg := input[i]
 		if !strings.HasPrefix(arg, "-") {
 			args.files = append(args.files, arg)
 			continue
@@ -117,10 +127,10 @@ func readArgs() (args arguments, err error) {
 			args.version = true
 		case "-s", "--scope":
 			// Next argument must be scope value
-			if len(os.Args) < i+2 {
+			if len(input) < i+2 {
 				return arguments{}, fmt.Errorf("empty scope")
 			}
-			arg = os.Args[i+1]
+			arg = input[i+1]
 			i++
 
 			switch arg {
