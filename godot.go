@@ -494,9 +494,6 @@ func isSpecialLine(comment string) bool {
 }
 
 func hasSuffix(s string, suffixes []string) bool {
-	if s == "" {
-		return false
-	}
 	for _, suffix := range suffixes {
 		if strings.HasSuffix(s, suffix) {
 			return true
