@@ -43,7 +43,11 @@ const (
 
 // Settings contains linter settings.
 type Settings struct {
+	// Which comments to check (top level declarations, top level, all).
 	Scope Scope
+
+	// Check periods at the end of sentences.
+	Period bool
 }
 
 // Issue contains a description of linting error and a recommended replacement.
@@ -90,7 +94,7 @@ func Run(file *ast.File, fset *token.FileSet, settings Settings) ([]Issue, error
 		return nil, fmt.Errorf("get comments: %v", err)
 	}
 
-	issues, err := checkComments(fset, comments)
+	issues, err := checkComments(fset, comments, settings)
 	if err != nil {
 		return nil, fmt.Errorf("check comments: %v", err)
 	}
@@ -340,8 +344,9 @@ func getAllComments(file *ast.File, fset *token.FileSet, lines []string) ([]comm
 	return comments, nil
 }
 
-// checkComments checks that every comment ends with a period.
-func checkComments(fset *token.FileSet, comments []comment) ([]Issue, error) {
+// checkComments checks every comment accordings to the rules from
+// `settings` argument.
+func checkComments(fset *token.FileSet, comments []comment, settings Settings) ([]Issue, error) {
 	var issues []Issue // nolint: prealloc
 	for _, c := range comments {
 		if c.ast == nil || len(c.ast.List) == 0 {
@@ -352,7 +357,13 @@ func checkComments(fset *token.FileSet, comments []comment) ([]Issue, error) {
 		start := fset.Position(c.ast.List[0].Slash)
 
 		text := getText(c.ast)
-		pos, ok := checkText(text)
+
+		// No checks were set
+		if !settings.Period {
+			continue
+		}
+
+		pos, ok := checkPeriod(text)
 		if ok {
 			continue
 		}
@@ -423,11 +434,11 @@ func getText(comment *ast.CommentGroup) (s string) {
 	return s[:len(s)-1] // trim last "\n"
 }
 
-// checkText checks extracted text from comment structure, and returns position
-// of the issue if found.
+// checkPeriod checks extracted text from comment structure, and returns
+// position of the issue if found.
 // NOTE: Returned position is a position inside given text, not position in
 // the original file.
-func checkText(comment string) (pos position, ok bool) {
+func checkPeriod(comment string) (pos position, ok bool) {
 	isBlock := strings.HasPrefix(comment, "/*")
 
 	// Check last non-empty line

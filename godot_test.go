@@ -180,7 +180,7 @@ func TestGetText(t *testing.T) {
 	}
 }
 
-func TestCheckText(t *testing.T) {
+func TestCheckPeriod(t *testing.T) {
 	testCases := []struct {
 		name    string
 		comment string
@@ -307,7 +307,7 @@ func TestCheckText(t *testing.T) {
 	for _, tt := range testCases {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			pos, ok := checkText(tt.comment)
+			pos, ok := checkPeriod(tt.comment)
 			if ok != tt.ok {
 				t.Fatalf("Wrong result\n  expected: %v\n       got: %v", tt.ok, ok)
 			}
