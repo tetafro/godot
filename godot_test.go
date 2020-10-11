@@ -82,35 +82,35 @@ func TestGetText(t *testing.T) {
 			comment: &ast.CommentGroup{List: []*ast.Comment{
 				{Text: "// Hello, world"},
 			}},
-			text: "// Hello, world",
+			text: " Hello, world",
 		},
 		{
 			name: "regular text without indentation",
 			comment: &ast.CommentGroup{List: []*ast.Comment{
 				{Text: "//Hello, world"},
 			}},
-			text: "//Hello, world",
+			text: "Hello, world",
 		},
 		{
 			name: "empty singleline comment",
 			comment: &ast.CommentGroup{List: []*ast.Comment{
 				{Text: "//"},
 			}},
-			text: "//",
+			text: "",
 		},
 		{
 			name: "empty multiline comment",
 			comment: &ast.CommentGroup{List: []*ast.Comment{
 				{Text: "/**/"},
 			}},
-			text: "/**/",
+			text: "",
 		},
 		{
 			name: "regular text in multiline block",
 			comment: &ast.CommentGroup{List: []*ast.Comment{
 				{Text: "/*\nHello, world\n*/"},
 			}},
-			text: "/*\nHello, world\n*/",
+			text: "\nHello, world\n",
 		},
 		{
 			name: "block of singleline comments with regular text",
@@ -119,21 +119,21 @@ func TestGetText(t *testing.T) {
 				{Text: "// Two"},
 				{Text: "// Three"},
 			}},
-			text: "// One\n// Two\n// Three",
+			text: " One\n Two\n Three",
 		},
 		{
 			name: "block of singleline comments with empty and special lines",
 			comment: &ast.CommentGroup{List: []*ast.Comment{
 				{Text: "// One"},
 				{Text: "//"},
-				{Text: "//  \t  "},
+				{Text: "//  fmt.Println(s)"},
 				{Text: "// Two"},
 				{Text: "// #nosec"},
 				{Text: "// Three"},
 				{Text: "// +k8s:deepcopy-gen=package"},
 				{Text: "// +nolint: gosec"},
 			}},
-			text: "// One\n//\n// .\n// Two\n// .\n// Three\n// .\n// .",
+			text: " One\n\n\n Two\n\n Three\n\n",
 		},
 		{
 			name: "cgo block",
@@ -157,11 +157,11 @@ func TestGetText(t *testing.T) {
 					"\tfmt.Println(n)\n" +
 					"*/"},
 			}},
-			text: "/*\n" +
+			text: "\n" +
 				"Example:\n" +
-				".\n" +
-				".\n" +
-				"*/",
+				"\n" +
+				"\n" +
+				"",
 		},
 		{
 			name:    "empty comment group",
@@ -174,7 +174,7 @@ func TestGetText(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			if text := getText(tt.comment); text != tt.text {
-				t.Fatalf("Wrong text\n  expected: %s\n       got: %s", tt.text, text)
+				t.Fatalf("Wrong text\n  expected: '%s'\n       got: '%s'", tt.text, text)
 			}
 		})
 	}
@@ -182,132 +182,112 @@ func TestGetText(t *testing.T) {
 
 func TestCheckPeriod(t *testing.T) {
 	testCases := []struct {
-		name    string
-		comment string
-		ok      bool
-		issue   position
+		name  string
+		text  string
+		ok    bool
+		issue position
 	}{
 		{
-			name:    "sentence with period, singleline comment",
-			comment: "// Hello, world.",
-			ok:      true,
+			name: "singleline text with period",
+			text: "Hello, world.",
+			ok:   true,
 		},
 		{
-			name:    "with period, no indentation",
-			comment: "//Hello, world.",
-			ok:      true,
+			name: "singleline text with period and indentation",
+			text: " Hello, world.",
+			ok:   true,
 		},
 		{
-			name:    "with period, multiple singleline comments",
-			comment: "// Hello,\n// world.",
-			ok:      true,
+			name: "multiple text with period",
+			text: "Hello,\nworld.",
+			ok:   true,
 		},
 		{
-			name:    "with period, multiline block",
-			comment: "/*\nHello, world.\n*/",
-			ok:      true,
+			name: "multiple text with period and empty lines",
+			text: "\nHello, world.\n",
+			ok:   true,
 		},
 		{
-			name:    "with period, multiline block, single line",
-			comment: "/* Hello, world. */",
-			ok:      true,
+			name:  "singleline text with no period",
+			text:  "Hello, world",
+			issue: position{line: 1, column: 13},
 		},
 		{
-			name:    "no period, singleline comment",
-			comment: "// Hello, world",
-			issue:   position{line: 1, column: 16},
+			name:  "multiple text with no period",
+			text:  "\nHello,\nworld\n",
+			issue: position{line: 3, column: 6},
 		},
 		{
-			name:    "no period, multiline block",
-			comment: "/*\nHello, world\n*/",
-			issue:   position{line: 2, column: 13},
+			name: "question mark",
+			text: "Hello, world?",
+			ok:   true,
 		},
 		{
-			name:    "no period, multiline block, single line",
-			comment: "/* Hello, world */",
-			issue:   position{line: 1, column: 16},
+			name: "exclamation mark",
+			text: "Hello, world!",
+			ok:   true,
 		},
 		{
-			name:    "no period, set of single line comments",
-			comment: "// Hello,\n// world",
-			issue:   position{line: 2, column: 9},
+			name: "empty line",
+			text: "",
+			ok:   true,
 		},
 		{
-			name:    "question mark",
-			comment: "// Hello, world?",
-			ok:      true,
+			name: "empty lines",
+			text: "\n\n",
+			ok:   true,
 		},
 		{
-			name:    "exclamation mark",
-			comment: "// Hello, world!",
-			ok:      true,
+			name: "only spaces",
+			text: "   ",
+			ok:   true,
 		},
 		{
-			name:    "empty line",
-			comment: "//",
-			ok:      true,
+			name: "mixed spaces",
+			text: "\t\t  ",
+			ok:   true,
 		},
 		{
-			name:    "empty multiline block",
-			comment: "/**/",
-			ok:      true,
+			name: "mixed spaces and newlines",
+			text: " \t\t \n\n\n  \n\t  ",
+			ok:   true,
 		},
 		{
-			name:    "multiple empty singleline comments",
-			comment: "//\n//\n//\n//",
-			ok:      true,
+			name: "cyrillic, with period",
+			text: "Кириллица.",
+			ok:   true,
 		},
 		{
-			name:    "only spaces",
-			comment: "//   ",
-			ok:      true,
+			name:  "cyrillic, without period",
+			text:  "Кириллица",
+			issue: position{line: 1, column: 10},
 		},
 		{
-			name:    "mixed spaces",
-			comment: "// \t\t  ",
-			ok:      true,
+			name: "parenthesis, with period",
+			text: "Hello. (World.)",
+			ok:   true,
 		},
 		{
-			name:    "mixed spaces, multiline block",
-			comment: "/* \t\t \n\n\n  \n\t  */",
-			ok:      true,
+			name:  "parenthesis, without period",
+			text:  "Hello. (World)",
+			issue: position{line: 1, column: 15},
 		},
 		{
-			name:    "cyrillic, with period",
-			comment: "// Кириллица.",
-			ok:      true,
+			name: "single closing parenthesis with period",
+			text: ").",
+			ok:   true,
 		},
 		{
-			name:    "// cyrillic, without period",
-			comment: "// Кириллица",
-			issue:   position{line: 1, column: 13},
-		},
-		{
-			name:    "parenthesis, with period",
-			comment: "// Hello. (World.)",
-			ok:      true,
-		},
-		{
-			name:    "parenthesis, without period",
-			comment: "// Hello. (World)",
-			issue:   position{line: 1, column: 18},
-		},
-		{
-			name:    "single closing parenthesis with period",
-			comment: "// ).",
-			ok:      true,
-		},
-		{
-			name:    "single closing parenthesis without period",
-			comment: "// )",
-			issue:   position{line: 1, column: 5},
+			name:  "single closing parenthesis without period",
+			text:  ")",
+			issue: position{line: 1, column: 2},
 		},
 	}
 
 	for _, tt := range testCases {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			pos, ok := checkPeriod(tt.comment)
+			pos, ok := checkPeriod(tt.text)
 			if ok != tt.ok {
 				t.Fatalf("Wrong result\n  expected: %v\n       got: %v", tt.ok, ok)
 			}
@@ -552,7 +532,7 @@ func TestRun(t *testing.T) {
 					}
 				}
 			}
-			issues, err := Run(f, fset, Settings{Scope: tt.scope})
+			issues, err := Run(f, fset, Settings{Scope: tt.scope, Period: true})
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
@@ -578,7 +558,7 @@ func TestFix(t *testing.T) {
 
 	t.Run("file not found", func(t *testing.T) {
 		path := filepath.Join("testdata", "not-exists.go")
-		_, err := Fix(path, nil, nil, Settings{})
+		_, err := Fix(path, nil, nil, Settings{Period: true})
 		if err == nil {
 			t.Fatal("Expected error, got nil")
 		}
@@ -586,7 +566,7 @@ func TestFix(t *testing.T) {
 
 	t.Run("empty file", func(t *testing.T) {
 		path := filepath.Join("testdata", "empty.go")
-		fixed, err := Fix(path, nil, nil, Settings{})
+		fixed, err := Fix(path, nil, nil, Settings{Period: true})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -598,7 +578,7 @@ func TestFix(t *testing.T) {
 	t.Run("scope: decl", func(t *testing.T) {
 		expected := strings.ReplaceAll(string(content), "[DECL]", "[DECL].")
 
-		fixed, err := Fix(testFile, file, fset, Settings{Scope: DeclScope})
+		fixed, err := Fix(testFile, file, fset, Settings{Scope: DeclScope, Period: true})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -610,7 +590,7 @@ func TestFix(t *testing.T) {
 		expected := strings.ReplaceAll(string(content), "[DECL]", "[DECL].")
 		expected = strings.ReplaceAll(expected, "[TOP]", "[TOP].")
 
-		fixed, err := Fix(testFile, file, fset, Settings{Scope: TopLevelScope})
+		fixed, err := Fix(testFile, file, fset, Settings{Scope: TopLevelScope, Period: true})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -623,7 +603,7 @@ func TestFix(t *testing.T) {
 		expected = strings.ReplaceAll(expected, "[TOP]", "[TOP].")
 		expected = strings.ReplaceAll(expected, "[ALL]", "[ALL].")
 
-		fixed, err := Fix(testFile, file, fset, Settings{Scope: AllScope})
+		fixed, err := Fix(testFile, file, fset, Settings{Scope: AllScope, Period: true})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -651,7 +631,7 @@ func TestReplace(t *testing.T) {
 
 	t.Run("file not found", func(t *testing.T) {
 		path := filepath.Join("testdata", "not-exists.go")
-		err := Replace(path, nil, nil, Settings{})
+		err := Replace(path, nil, nil, Settings{Period: true})
 		if err == nil {
 			t.Fatal("Expected error, got nil")
 		}
@@ -663,7 +643,8 @@ func TestReplace(t *testing.T) {
 		}()
 		expected := strings.ReplaceAll(string(content), "[DECL]", "[DECL].")
 
-		if err := Replace(testFile, file, fset, Settings{Scope: DeclScope}); err != nil {
+		err := Replace(testFile, file, fset, Settings{Scope: DeclScope, Period: true})
+		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 		fixed, err := ioutil.ReadFile(testFile) // nolint: gosec
@@ -682,7 +663,8 @@ func TestReplace(t *testing.T) {
 		expected = strings.ReplaceAll(expected, "[TOP]", "[TOP].")
 		expected = strings.ReplaceAll(expected, "[ALL]", "[ALL].")
 
-		if err := Replace(testFile, file, fset, Settings{Scope: AllScope}); err != nil {
+		err := Replace(testFile, file, fset, Settings{Scope: AllScope, Period: true})
+		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 		fixed, err := ioutil.ReadFile(testFile) // nolint: gosec

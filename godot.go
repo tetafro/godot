@@ -73,9 +73,10 @@ type comment struct {
 
 var (
 	// List of valid sentence ending.
-	// NOTE: Sentence can be inside parenthesis, and therefore ends
-	// with parenthesis.
-	lastChars = []string{".", "?", "!", ".)", "?)", "!)"}
+	// A sentence can be inside parenthesis, and therefore ends with parenthesis.
+	// A colon is a valid sentence ending, because it can be followed by a
+	// code example which is not checked.
+	lastChars = []string{".", "?", "!", ".)", "?)", "!)", ":"}
 
 	// Special tags in comments like "// nolint:", or "// +k8s:".
 	tags = regexp.MustCompile(`^\+?[a-z0-9]+:`)
@@ -368,6 +369,12 @@ func checkComments(fset *token.FileSet, comments []comment, settings Settings) (
 			continue
 		}
 
+		// Shift position by the length of comment's special symbols: /* or //
+		isBlock := strings.HasPrefix(c.ast.List[0].Text, "/*")
+		if (isBlock && pos.line == 1) || !isBlock {
+			pos.column += 2
+		}
+
 		iss := Issue{
 			Pos: token.Position{
 				Filename: start.Filename,
@@ -406,8 +413,7 @@ func checkComments(fset *token.FileSet, comments []comment, settings Settings) (
 // getText extracts text from comment. If comment is a special block
 // (e.g., CGO code), a block of empty lines is returned. If comment contains
 // special lines (e.g., tags or indented code examples), they are replaced
-// with a period, it's a hack to not force setting a period in comments
-// before special lines. The result can be multiline.
+// with an empty line. The result can be multiline.
 func getText(comment *ast.CommentGroup) (s string) {
 	if len(comment.List) == 1 &&
 		strings.HasPrefix(comment.List[0].Text, "/*") &&
@@ -416,14 +422,20 @@ func getText(comment *ast.CommentGroup) (s string) {
 	}
 
 	for _, c := range comment.List {
-		isMultiline := strings.HasPrefix(c.Text, "/*")
-		for _, line := range strings.Split(c.Text, "\n") {
+		text := c.Text
+		isBlock := false
+		if strings.HasPrefix(c.Text, "/*") {
+			isBlock = true
+			text = strings.TrimPrefix(text, "/*")
+			text = strings.TrimSuffix(text, "*/")
+		}
+		for _, line := range strings.Split(text, "\n") {
 			if isSpecialLine(line) {
-				if isMultiline {
-					line = "."
-				} else {
-					line = "// ."
+				s += "\n"
+				continue
 				}
+			if !isBlock {
+				line = strings.TrimPrefix(line, "//")
 			}
 			s += line + "\n"
 		}
@@ -434,39 +446,19 @@ func getText(comment *ast.CommentGroup) (s string) {
 	return s[:len(s)-1] // trim last "\n"
 }
 
-// checkPeriod checks extracted text from comment structure, and returns
-// position of the issue if found.
-// NOTE: Returned position is a position inside given text, not position in
-// the original file.
+// checkPeriod checks that the last sentense of the comment ends in a period.
+// NOTE: Returned position is a position inside given text, not in the
+// original file.
 func checkPeriod(comment string) (pos position, ok bool) {
-	isBlock := strings.HasPrefix(comment, "/*")
-
 	// Check last non-empty line
 	var found bool
-	var line, prefix string
+	var line string
 	lines := strings.Split(comment, "\n")
 	for i := len(lines) - 1; i >= 0; i-- {
-		line = lines[i]
-
-		// Trim //, /*, */ and save them
-		prefix = ""
-		if !isBlock {
-			line = strings.TrimPrefix(line, "//")
-			prefix = "//"
-		}
-		if isBlock && i == 0 {
-			line = strings.TrimPrefix(line, "/*")
-			prefix = "/*"
-		}
-		if isBlock && i == len(lines)-1 {
-			line = strings.TrimSuffix(line, "*/")
-		}
-
-		line = strings.TrimRightFunc(line, unicode.IsSpace)
+		line = strings.TrimRightFunc(lines[i], unicode.IsSpace)
 		if line == "" {
 			continue
 		}
-
 		found = true
 		pos.line = i + 1
 		break
@@ -480,7 +472,7 @@ func checkPeriod(comment string) (pos position, ok bool) {
 		return position{}, true
 	}
 
-	pos.column = len([]rune(prefix+line)) + 1
+	pos.column = len([]rune(line)) + 1
 	return pos, false
 }
 
