@@ -34,60 +34,72 @@ func checkComments(fset *token.FileSet, comments []comment, settings Settings) (
 			continue
 		}
 
-		// Save global line number and indent
-		start := fset.Position(c.ast.List[0].Slash)
-
-		text := getText(c.ast)
-
 		if settings.Period {
-			pos, ok := checkPeriod(text)
-			if ok {
-				continue
+			iss, err := checkCommentForPeriod(fset, c)
+			if err != nil {
+				return nil, fmt.Errorf("check comment for period: %v", err)
 			}
-
-			// Shift position by the length of comment's special symbols: /* or //
-			isBlock := strings.HasPrefix(c.ast.List[0].Text, "/*")
-			if (isBlock && pos.line == 1) || !isBlock {
-				pos.column += 2
+			if iss != nil {
+				issues = append(issues, *iss)
 			}
-
-			iss := Issue{
-				Pos: token.Position{
-					Filename: start.Filename,
-					Offset:   start.Offset,
-					Line:     pos.line + start.Line - 1,
-					Column:   pos.column + start.Column - 1,
-				},
-				Message: noPeriodMessage,
-			}
-
-			// Make a replacement. Use `pos.line` to get an original line from
-			// attached lines. Use `iss.Pos.Column` because it's a position in
-			// the original line.
-			if pos.line-1 >= len(c.lines) {
-				return nil, fmt.Errorf(
-					"invalid line number inside comment: %s:%d",
-					iss.Pos.Filename, iss.Pos.Line,
-				)
-			}
-			original := []rune(c.lines[pos.line-1])
-			if iss.Pos.Column-1 > len(original) {
-				return nil, fmt.Errorf(
-					"invalid column number inside comment: %s:%d:%d",
-					iss.Pos.Filename, iss.Pos.Line, iss.Pos.Column,
-				)
-			}
-			iss.Replacement = fmt.Sprintf("%s.%s",
-				string(original[:iss.Pos.Column-1]),
-				string(original[iss.Pos.Column-1:]))
-
-			issues = append(issues, iss)
 		}
 	}
 	return issues, nil
 }
 
-// checkPeriod checks that the last sentense of the comment ends in a period.
+// checkCommentForPeriod checks that the last sentense of the comment ends
+// in a period.
+func checkCommentForPeriod(fset *token.FileSet, c comment) (*Issue, error) {
+	// Save global line number and indent
+	start := fset.Position(c.ast.List[0].Slash)
+
+	text := getText(c.ast)
+
+	pos, ok := checkPeriod(text)
+	if ok {
+		return nil, nil
+	}
+
+	// Shift position by the length of comment's special symbols: /* or //
+	isBlock := strings.HasPrefix(c.ast.List[0].Text, "/*")
+	if (isBlock && pos.line == 1) || !isBlock {
+		pos.column += 2
+	}
+
+	iss := Issue{
+		Pos: token.Position{
+			Filename: start.Filename,
+			Offset:   start.Offset,
+			Line:     pos.line + start.Line - 1,
+			Column:   pos.column + start.Column - 1,
+		},
+		Message: noPeriodMessage,
+	}
+
+	// Make a replacement. Use `pos.line` to get an original line from
+	// attached lines. Use `iss.Pos.Column` because it's a position in
+	// the original line.
+	if pos.line-1 >= len(c.lines) {
+		return nil, fmt.Errorf(
+			"invalid line number inside comment: %s:%d",
+			iss.Pos.Filename, iss.Pos.Line,
+		)
+	}
+	original := []rune(c.lines[pos.line-1])
+	if iss.Pos.Column-1 > len(original) {
+		return nil, fmt.Errorf(
+			"invalid column number inside comment: %s:%d:%d",
+			iss.Pos.Filename, iss.Pos.Line, iss.Pos.Column,
+		)
+	}
+	iss.Replacement = fmt.Sprintf("%s.%s",
+		string(original[:iss.Pos.Column-1]),
+		string(original[iss.Pos.Column-1:]))
+
+	return &iss, nil
+}
+
+// checkPeriod checks that the last sentense of the text ends in a period.
 // NOTE: Returned position is a position inside given text, not in the
 // original file.
 func checkPeriod(comment string) (pos position, ok bool) {
