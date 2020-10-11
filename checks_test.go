@@ -123,6 +123,33 @@ func TestCheckPeriod(t *testing.T) {
 	}
 }
 
+func TestCheckCapital(t *testing.T) {
+	testCases := []struct {
+		name  string
+		text  string
+		ok    bool
+		issue position
+	}{
+		// TODO: Add tests
+	}
+
+	for _, tt := range testCases {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			pos, ok := checkCapital(tt.text)
+			if ok != tt.ok {
+				t.Fatalf("Wrong result\n  expected: %v\n       got: %v", tt.ok, ok)
+			}
+			if pos.line != tt.issue.line {
+				t.Fatalf("Wrong line\n  expected: %d\n       got: %d", tt.issue.line, pos.line)
+			}
+			if pos.column != tt.issue.column {
+				t.Fatalf("Wrong column\n  expected: %d\n       got: %d", tt.issue.column, pos.column)
+			}
+		})
+	}
+}
+
 func TestIsSpecialBlock(t *testing.T) {
 	testCases := []struct {
 		name      string

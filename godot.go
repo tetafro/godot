@@ -17,9 +17,6 @@ import (
 // NOTE: Errors `invalid line number inside comment...` should never happen.
 // Their goal is to prevent panic, if there's a bug with array indexes.
 
-// noPeriodMessage is an error message to return.
-const noPeriodMessage = "Comment should end in a period"
-
 // Issue contains a description of linting error and a recommended replacement.
 type Issue struct {
 	Pos         token.Position

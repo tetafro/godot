@@ -7,6 +7,9 @@ type Settings struct {
 
 	// Check periods at the end of sentences.
 	Period bool
+
+	// Check that first letter of each sentence is capital.
+	Capital bool
 }
 
 // Scope sets which comments should be checked.
