@@ -125,10 +125,9 @@ func TestCheckPeriod(t *testing.T) {
 
 func TestCheckCapital(t *testing.T) {
 	testCases := []struct {
-		name  string
-		text  string
-		ok    bool
-		issue position
+		name   string
+		text   string
+		issues []position
 	}{
 		// TODO: Add tests
 	}
@@ -136,15 +135,20 @@ func TestCheckCapital(t *testing.T) {
 	for _, tt := range testCases {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			pos, ok := checkCapital(tt.text)
-			if ok != tt.ok {
-				t.Fatalf("Wrong result\n  expected: %v\n       got: %v", tt.ok, ok)
+			issues := checkCapital(tt.text)
+			if len(issues) != len(tt.issues) {
+				t.Fatalf("Wrong number of issues\n  expected: %d\n       got: %d",
+					len(tt.issues), len(issues))
 			}
-			if pos.line != tt.issue.line {
-				t.Fatalf("Wrong line\n  expected: %d\n       got: %d", tt.issue.line, pos.line)
-			}
-			if pos.column != tt.issue.column {
-				t.Fatalf("Wrong column\n  expected: %d\n       got: %d", tt.issue.column, pos.column)
+			for i := range issues {
+				if issues[i].line != tt.issues[i].line {
+					t.Fatalf("Wrong line\n  expected: %d\n       got: %d",
+						tt.issues[i].line, issues[i].line)
+				}
+				if issues[i].column != tt.issues[i].column {
+					t.Fatalf("Wrong column\n  expected: %d\n       got: %d",
+						tt.issues[i].column, issues[i].column)
+				}
 			}
 		})
 	}

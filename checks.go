@@ -55,8 +55,8 @@ func checkComments(fset *token.FileSet, comments []comment, settings Settings) (
 			if err != nil {
 				return nil, fmt.Errorf("check comment for capital: %v", err)
 			}
-			if iss != nil {
-				issues = append(issues, *iss)
+			if len(iss) > 0 {
+				issues = append(issues, iss...)
 			}
 		}
 	}
@@ -118,34 +118,37 @@ func checkCommentForPeriod(fset *token.FileSet, c comment) (*Issue, error) {
 // checkCommentForCapital checks that the each sentense of the comment starts with
 // a capital letter.
 // nolint: unparam
-func checkCommentForCapital(fset *token.FileSet, c comment) (*Issue, error) {
+func checkCommentForCapital(fset *token.FileSet, c comment) ([]Issue, error) {
 	// Save global line number and indent
 	start := fset.Position(c.ast.List[0].Slash)
 
 	text := getText(c.ast)
 
-	pos, ok := checkCapital(text)
-	if ok {
+	pp := checkCapital(text)
+	if len(pp) == 0 {
 		return nil, nil
 	}
 
-	// Shift position by the length of comment's special symbols: /* or //
-	isBlock := strings.HasPrefix(c.ast.List[0].Text, "/*")
-	if (isBlock && pos.line == 1) || !isBlock {
-		pos.column += 2
+	issues := make([]Issue, len(pp))
+	for i, pos := range pp {
+		// Shift position by the length of comment's special symbols: /* or //
+		isBlock := strings.HasPrefix(c.ast.List[0].Text, "/*")
+		if (isBlock && pos.line == 1) || !isBlock {
+			pos.column += 2
+		}
+
+		issues[i] = Issue{
+			Pos: token.Position{
+				Filename: start.Filename,
+				Offset:   start.Offset,
+				Line:     pos.line + start.Line - 1,
+				Column:   pos.column + start.Column - 1,
+			},
+			Message: noCapitalMessage,
+		}
 	}
 
-	iss := Issue{
-		Pos: token.Position{
-			Filename: start.Filename,
-			Offset:   start.Offset,
-			Line:     pos.line + start.Line - 1,
-			Column:   pos.column + start.Column - 1,
-		},
-		Message: noCapitalMessage,
-	}
-
-	return &iss, nil
+	return issues, nil
 }
 
 // checkPeriod checks that the last sentense of the text ends in a period.
@@ -180,9 +183,9 @@ func checkPeriod(comment string) (pos position, ok bool) {
 
 // checkCapital checks that the each sentense of the text starts with
 // a capital letter.
-func checkCapital(comment string) (pos position, ok bool) {
+func checkCapital(comment string) []position {
 	// TODO: Implement
-	return position{}, true
+	return nil
 }
 
 // isSpecialBlock checks that given block of comment lines is special and
