@@ -36,6 +36,7 @@ type position struct {
 type comment struct {
 	ast   *ast.CommentGroup
 	lines []string
+	decl  bool
 }
 
 // Run runs this linter on the provided code.

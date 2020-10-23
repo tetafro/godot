@@ -124,7 +124,7 @@ func checkCommentForCapital(fset *token.FileSet, c comment) ([]Issue, error) {
 
 	text := getText(c.ast)
 
-	pp := checkCapital(text)
+	pp := checkCapital(text, c.decl)
 	if len(pp) == 0 {
 		return nil, nil
 	}
@@ -183,9 +183,33 @@ func checkPeriod(comment string) (pos position, ok bool) {
 
 // checkCapital checks that the each sentense of the text starts with
 // a capital letter.
-func checkCapital(comment string) []position {
-	// TODO: Implement
-	return nil
+// NOTE: First letter is not checked in declaration comments, because they
+// can describe unexported functions, which start from small letter.
+func checkCapital(comment string, checkFirst bool) (pp []position) {
+	pos := position{line: 1}
+	foundEnd := checkFirst
+	for _, r := range comment {
+		s := string(r)
+
+		pos.column++
+		if s == "\n" {
+			pos.line++
+			pos.column = 0
+			continue
+		}
+		if s == "." || s == "!" || s == "?" {
+			foundEnd = true
+			continue
+		}
+		if foundEnd && (s == ")" || s == " ") {
+			continue
+		}
+		if foundEnd && unicode.IsLower(r) {
+			pp = append(pp, position{line: pos.line, column: pos.column})
+		}
+		foundEnd = false
+	}
+	return pp
 }
 
 // isSpecialBlock checks that given block of comment lines is special and

@@ -19,15 +19,17 @@ var version = "master"
 const usage = `Usage:
     godot [OPTION] [FILES]
 Options:
+    -c, --capital   check that sentences start with a capital letter
     -s, --scope     set scope for check
                     decl - for top level declaration comments
-                    top  - for top level comments
+                    top  - for top level comments (default)
                     all  - for all comments
     -f, --fix       fix issues, and print fixed version to stdout
     -h, --help      show this message
     -v, --version   show version
     -w, --write     fix issues, and write result to original file`
 
+// nolint:maligned
 type arguments struct {
 	help    bool
 	version bool
@@ -35,6 +37,7 @@ type arguments struct {
 	write   bool
 	scope   string
 	files   []string
+	capital bool
 }
 
 func main() {
@@ -53,8 +56,9 @@ func main() {
 	}
 
 	settings := godot.Settings{
-		Scope:  godot.Scope(args.scope),
-		Period: true,
+		Scope:   godot.Scope(args.scope),
+		Period:  true,
+		Capital: args.capital,
 	}
 
 	var paths []string
@@ -99,6 +103,7 @@ func main() {
 	}
 }
 
+// nolint: funlen
 func readArgs() (args arguments, err error) {
 	if len(os.Args) < 2 { // nolint: gomnd
 		return arguments{}, fmt.Errorf("not enough arguments")
@@ -108,7 +113,7 @@ func readArgs() (args arguments, err error) {
 	input := make([]string, 0, len(os.Args)-1)
 	for i := 1; i < len(os.Args); i++ {
 		splitted := strings.Split(os.Args[i], "=")
-		if len(splitted) > 2 { // nolint: go-lint
+		if len(splitted) > 2 { // nolint: gomnd
 			return arguments{}, fmt.Errorf("invalid argument '%s'", os.Args[i])
 		}
 		input = append(input, splitted...)
@@ -146,6 +151,8 @@ func readArgs() (args arguments, err error) {
 			args.fix = true
 		case "-w", "--write":
 			args.write = true
+		case "-c", "--capital":
+			args.capital = true
 		default:
 			return arguments{}, fmt.Errorf("unknown flag '%s'", arg)
 		}

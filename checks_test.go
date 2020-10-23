@@ -1,6 +1,8 @@
 package godot
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestCheckPeriod(t *testing.T) {
 	testCases := []struct {
@@ -125,17 +127,59 @@ func TestCheckPeriod(t *testing.T) {
 
 func TestCheckCapital(t *testing.T) {
 	testCases := []struct {
-		name   string
-		text   string
-		issues []position
+		name       string
+		text       string
+		checkFirst bool
+		issues     []position
 	}{
-		// TODO: Add tests
+		{
+			name:       "single sentence starting with a capital letter",
+			text:       "Hello, world.",
+			checkFirst: true,
+		},
+		{
+			name:       "single sentence starting with a lowercase letter",
+			text:       "hello, world.",
+			checkFirst: true,
+			issues: []position{
+				{line: 1, column: 1},
+			},
+		},
+		{
+			name:       "multiple sentences with mixed cases",
+			text:       "hello, world. Hello, world. hello? hello!\n\nhello, world.",
+			checkFirst: true,
+			issues: []position{
+				{line: 1, column: 1},
+				{line: 1, column: 29},
+				{line: 1, column: 36},
+				{line: 3, column: 1},
+			},
+		},
+		{
+			name:       "multiple sentences with mixed cases, first letter skipped",
+			text:       "hello, world. Hello, world. hello? hello!\n\nhello, world.",
+			checkFirst: false,
+			issues: []position{
+				{line: 1, column: 29},
+				{line: 1, column: 36},
+				{line: 3, column: 1},
+			},
+		},
+		{
+			name:       "multiple sentences with mixed cases",
+			text:       "Кириллица? кириллица!",
+			checkFirst: true,
+			issues: []position{
+				{line: 1, column: 12},
+			},
+		},
 	}
 
 	for _, tt := range testCases {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			issues := checkCapital(tt.text)
+			issues := checkCapital(tt.text, tt.checkFirst)
 			if len(issues) != len(tt.issues) {
 				t.Fatalf("Wrong number of issues\n  expected: %d\n       got: %d",
 					len(tt.issues), len(issues))

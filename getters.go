@@ -28,23 +28,27 @@ func getComments(file *ast.File, fset *token.FileSet, scope Scope) ([]comment, e
 		return nil, fmt.Errorf("inconsistence between file and AST: %s", p.Filename)
 	}
 
-	// All comments
-	if scope == AllScope {
-		return getAllComments(file, fset, lines), nil
+	var comments, decl []comment
+	switch scope {
+	case AllScope:
+		// All comments
+		comments = getAllComments(file, fset, lines)
+	case TopLevelScope:
+		// All top level comments and comments from the inside
+		// of top level blocks
+		comments = append(
+			getBlockComments(file, fset, lines),
+			getTopLevelComments(file, fset, lines)...,
+		)
+	default:
+		// Top level declaration comments and comments from the inside
+		// of top level blocks
+		decl = getDeclarationComments(file, fset, lines)
+		comments = append(getBlockComments(file, fset, lines), decl...)
 	}
 
-	// Comments from the inside of top level blocks
-	comments := getBlockComments(file, fset, lines)
-
-	// All top level comments
-	if scope == TopLevelScope {
-		cc := getTopLevelComments(file, fset, lines)
-		return append(comments, cc...), nil
-	}
-
-	// Top level declaration comments
-	cc := getDeclarationComments(file, fset, lines)
-	comments = append(comments, cc...)
+	// Set `decl` flag
+	setDecl(comments, decl)
 
 	return comments, nil
 }
@@ -176,4 +180,16 @@ func getText(comment *ast.CommentGroup) (s string) {
 		return ""
 	}
 	return s[:len(s)-1] // trim last "\n"
+}
+
+// setDecl sets `decl` flag to comments which are declaration comments.
+func setDecl(comments, decl []comment) {
+	for _, d := range decl {
+		for i, c := range comments {
+			if d.ast.Pos() == c.ast.Pos() {
+				comments[i].decl = true
+				break
+			}
+		}
+	}
 }
