@@ -11,7 +11,9 @@ import (
 
 // getComments extracts comments from a file.
 func getComments(file *ast.File, fset *token.FileSet, scope Scope) ([]comment, error) {
-	var comments []comment
+	if len(file.Comments) == 0 {
+		return nil, nil
+	}
 
 	// Render AST representation to a string
 	var buf bytes.Buffer
@@ -20,36 +22,28 @@ func getComments(file *ast.File, fset *token.FileSet, scope Scope) ([]comment, e
 	}
 	lines := strings.Split(buf.String(), "\n")
 
+	// Check consistency to avoid checking index in each function
+	lastComment := file.Comments[len(file.Comments)-1]
+	if p := fset.Position(lastComment.End()); len(lines) < p.Line {
+		return nil, fmt.Errorf("inconsistence between file and AST: %s", p.Filename)
+	}
+
 	// All comments
 	if scope == AllScope {
-		cc, err := getAllComments(file, fset, lines)
-		if err != nil {
-			return nil, fmt.Errorf("get all comments: %v", err)
-		}
-		return append(comments, cc...), nil
+		return getAllComments(file, fset, lines), nil
 	}
 
 	// Comments from the inside of top level blocks
-	cc, err := getBlockComments(file, fset, lines)
-	if err != nil {
-		return nil, fmt.Errorf("get block comments: %v", err)
-	}
-	comments = append(comments, cc...)
+	comments := getBlockComments(file, fset, lines)
 
 	// All top level comments
 	if scope == TopLevelScope {
-		cc, err := getTopLevelComments(file, fset, lines)
-		if err != nil {
-			return nil, fmt.Errorf("get top level comments: %v", err)
-		}
+		cc := getTopLevelComments(file, fset, lines)
 		return append(comments, cc...), nil
 	}
 
 	// Top level declaration comments
-	cc, err = getDeclarationComments(file, fset, lines)
-	if err != nil {
-		return nil, fmt.Errorf("get declaration comments: %v", err)
-	}
+	cc := getDeclarationComments(file, fset, lines)
 	comments = append(comments, cc...)
 
 	return comments, nil
@@ -57,7 +51,7 @@ func getComments(file *ast.File, fset *token.FileSet, scope Scope) ([]comment, e
 
 // getBlockComments gets comments from the inside of top level
 // blocks: var (...), const (...).
-func getBlockComments(file *ast.File, fset *token.FileSet, lines []string) ([]comment, error) {
+func getBlockComments(file *ast.File, fset *token.FileSet, lines []string) []comment {
 	var comments []comment
 	for _, decl := range file.Decls {
 		d, ok := decl.(*ast.GenDecl)
@@ -82,24 +76,17 @@ func getBlockComments(file *ast.File, fset *token.FileSet, lines []string) ([]co
 			}
 			firstLine := fset.Position(c.Pos()).Line
 			lastLine := fset.Position(c.End()).Line
-			if lastLine >= len(lines) {
-				return nil, fmt.Errorf(
-					"invalid line number inside comment: %s:%d",
-					fset.Position(c.Pos()).Filename,
-					fset.Position(c.Pos()).Line,
-				)
-			}
 			comments = append(comments, comment{
 				ast:   c,
 				lines: lines[firstLine-1 : lastLine],
 			})
 		}
 	}
-	return comments, nil
+	return comments
 }
 
 // getTopLevelComments gets all top level comments.
-func getTopLevelComments(file *ast.File, fset *token.FileSet, lines []string) ([]comment, error) {
+func getTopLevelComments(file *ast.File, fset *token.FileSet, lines []string) []comment {
 	var comments []comment // nolint: prealloc
 	for _, c := range file.Comments {
 		if fset.Position(c.Pos()).Column != 1 {
@@ -107,82 +94,52 @@ func getTopLevelComments(file *ast.File, fset *token.FileSet, lines []string) ([
 		}
 		firstLine := fset.Position(c.Pos()).Line
 		lastLine := fset.Position(c.End()).Line
-		if lastLine >= len(lines) {
-			return nil, fmt.Errorf(
-				"invalid line number inside comment: %s:%d",
-				fset.Position(c.Pos()).Filename,
-				fset.Position(c.Pos()).Line,
-			)
-		}
 		comments = append(comments, comment{
 			ast:   c,
 			lines: lines[firstLine-1 : lastLine],
 		})
 	}
-	return comments, nil
+	return comments
 }
 
 // getDeclarationComments gets top level declaration comments.
-func getDeclarationComments(file *ast.File, fset *token.FileSet, lines []string) ([]comment, error) {
-	var comments []comment
+func getDeclarationComments(file *ast.File, fset *token.FileSet, lines []string) []comment {
+	var comments []comment // nolint: prealloc
 	for _, decl := range file.Decls {
+		var cg *ast.CommentGroup
 		switch d := decl.(type) {
 		case *ast.GenDecl:
-			if d.Doc != nil {
-				firstLine := fset.Position(d.Doc.Pos()).Line
-				lastLine := fset.Position(d.Doc.End()).Line
-				if lastLine >= len(lines) {
-					return nil, fmt.Errorf(
-						"invalid line number inside comment: %s:%d",
-						fset.Position(d.Doc.Pos()).Filename,
-						fset.Position(d.Doc.Pos()).Line,
-					)
-				}
-				comments = append(comments, comment{
-					ast:   d.Doc,
-					lines: lines[firstLine-1 : lastLine],
-				})
-			}
+			cg = d.Doc
 		case *ast.FuncDecl:
-			if d.Doc != nil {
-				firstLine := fset.Position(d.Doc.Pos()).Line
-				lastLine := fset.Position(d.Doc.End()).Line
-				if lastLine >= len(lines) {
-					return nil, fmt.Errorf(
-						"invalid line number inside comment: %s:%d",
-						fset.Position(d.Doc.Pos()).Filename,
-						fset.Position(d.Doc.Pos()).Line,
-					)
-				}
-				comments = append(comments, comment{
-					ast:   d.Doc,
-					lines: lines[firstLine-1 : lastLine],
-				})
-			}
+			cg = d.Doc
 		}
+
+		if cg == nil {
+			continue
+		}
+
+		firstLine := fset.Position(cg.Pos()).Line
+		lastLine := fset.Position(cg.End()).Line
+		comments = append(comments, comment{
+			ast:   cg,
+			lines: lines[firstLine-1 : lastLine],
+		})
 	}
-	return comments, nil
+	return comments
 }
 
 // getAllComments gets every single comment from the file.
-func getAllComments(file *ast.File, fset *token.FileSet, lines []string) ([]comment, error) {
+func getAllComments(file *ast.File, fset *token.FileSet, lines []string) []comment {
 	var comments []comment //nolint: prealloc
 	for _, c := range file.Comments {
 		firstLine := fset.Position(c.Pos()).Line
 		lastLine := fset.Position(c.End()).Line
-		if lastLine >= len(lines) {
-			return nil, fmt.Errorf(
-				"invalid line number inside comment: %s:%d",
-				fset.Position(c.Pos()).Filename,
-				fset.Position(c.Pos()).Line,
-			)
-		}
 		comments = append(comments, comment{
 			ast:   c,
 			lines: lines[firstLine-1 : lastLine],
 		})
 	}
-	return comments, nil
+	return comments
 }
 
 // getText extracts text from comment. If comment is a special block
