@@ -53,7 +53,8 @@ func main() {
 	}
 
 	settings := godot.Settings{
-		Scope: godot.Scope(args.scope),
+		Scope:  godot.Scope(args.scope),
+		Period: true,
 	}
 
 	var paths []string
@@ -148,6 +149,10 @@ func readArgs() (args arguments, err error) {
 		default:
 			return arguments{}, fmt.Errorf("unknown flag '%s'", arg)
 		}
+	}
+
+	if args.scope == "" {
+		args.scope = string(godot.TopLevelScope)
 	}
 
 	if !args.help && !args.version && len(args.files) == 0 {
