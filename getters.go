@@ -28,7 +28,8 @@ func getComments(file *ast.File, fset *token.FileSet, scope Scope) ([]comment, e
 		return nil, fmt.Errorf("inconsistence between file and AST: %s", p.Filename)
 	}
 
-	var comments, decl []comment
+	var comments []comment
+	decl := getDeclarationComments(file, fset, lines)
 	switch scope {
 	case AllScope:
 		// All comments
@@ -43,7 +44,6 @@ func getComments(file *ast.File, fset *token.FileSet, scope Scope) ([]comment, e
 	default:
 		// Top level declaration comments and comments from the inside
 		// of top level blocks
-		decl = getDeclarationComments(file, fset, lines)
 		comments = append(getBlockComments(file, fset, lines), decl...)
 	}
 

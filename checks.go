@@ -185,9 +185,14 @@ func checkPeriod(comment string) (pos position, ok bool) {
 // a capital letter.
 // NOTE: First letter is not checked in declaration comments, because they
 // can describe unexported functions, which start from small letter.
-func checkCapital(comment string, checkFirst bool) (pp []position) {
+func checkCapital(comment string, skipFirst bool) (pp []position) {
+	const empty, endChar, endOfSentence = 1, 2, 3
+
 	pos := position{line: 1}
-	foundEnd := checkFirst
+	state := endOfSentence
+	if skipFirst {
+		state = empty
+	}
 	for _, r := range comment {
 		s := string(r)
 
@@ -195,19 +200,28 @@ func checkCapital(comment string, checkFirst bool) (pp []position) {
 		if s == "\n" {
 			pos.line++
 			pos.column = 0
+			if state == endChar {
+				state = endOfSentence
+			}
 			continue
 		}
 		if s == "." || s == "!" || s == "?" {
-			foundEnd = true
+			state = endChar
 			continue
 		}
-		if foundEnd && (s == ")" || s == " ") {
+		if s == ")" && state == endChar {
 			continue
 		}
-		if foundEnd && unicode.IsLower(r) {
+		if s == " " {
+			if state == endChar {
+				state = endOfSentence
+			}
+			continue
+		}
+		if state == endOfSentence && unicode.IsLower(r) {
 			pp = append(pp, position{line: pos.line, column: pos.column})
 		}
-		foundEnd = false
+		state = empty
 	}
 	return pp
 }

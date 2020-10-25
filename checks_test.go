@@ -127,28 +127,28 @@ func TestCheckPeriod(t *testing.T) {
 
 func TestCheckCapital(t *testing.T) {
 	testCases := []struct {
-		name       string
-		text       string
-		checkFirst bool
-		issues     []position
+		name      string
+		text      string
+		skipFirst bool
+		issues    []position
 	}{
 		{
-			name:       "single sentence starting with a capital letter",
-			text:       "Hello, world.",
-			checkFirst: true,
+			name:      "single sentence starting with a capital letter",
+			text:      "Hello, world.",
+			skipFirst: false,
 		},
 		{
-			name:       "single sentence starting with a lowercase letter",
-			text:       "hello, world.",
-			checkFirst: true,
+			name:      "single sentence starting with a lowercase letter",
+			text:      "hello, world.",
+			skipFirst: false,
 			issues: []position{
 				{line: 1, column: 1},
 			},
 		},
 		{
-			name:       "multiple sentences with mixed cases",
-			text:       "hello, world. Hello, world. hello? hello!\n\nhello, world.",
-			checkFirst: true,
+			name:      "multiple sentences with mixed cases",
+			text:      "hello, world. Hello, world. hello? hello!\n\nhello, world.",
+			skipFirst: false,
 			issues: []position{
 				{line: 1, column: 1},
 				{line: 1, column: 29},
@@ -157,9 +157,9 @@ func TestCheckCapital(t *testing.T) {
 			},
 		},
 		{
-			name:       "multiple sentences with mixed cases, first letter skipped",
-			text:       "hello, world. Hello, world. hello? hello!\n\nhello, world.",
-			checkFirst: false,
+			name:      "multiple sentences with mixed cases, first letter skipped",
+			text:      "hello, world. Hello, world. hello? hello!\n\nhello, world.",
+			skipFirst: true,
 			issues: []position{
 				{line: 1, column: 29},
 				{line: 1, column: 36},
@@ -167,11 +167,19 @@ func TestCheckCapital(t *testing.T) {
 			},
 		},
 		{
-			name:       "multiple sentences with mixed cases",
-			text:       "Кириллица? кириллица!",
-			checkFirst: true,
+			name:      "multiple sentences with mixed cases",
+			text:      "Кириллица? кириллица!",
+			skipFirst: false,
 			issues: []position{
 				{line: 1, column: 12},
+			},
+		},
+		{
+			name:      "sentence with leading spaces",
+			text:      "    hello, world",
+			skipFirst: false,
+			issues: []position{
+				{line: 1, column: 5},
 			},
 		},
 	}
@@ -179,7 +187,7 @@ func TestCheckCapital(t *testing.T) {
 	for _, tt := range testCases {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			issues := checkCapital(tt.text, tt.checkFirst)
+			issues := checkCapital(tt.text, tt.skipFirst)
 			if len(issues) != len(tt.issues) {
 				t.Fatalf("Wrong number of issues\n  expected: %d\n       got: %d",
 					len(tt.issues), len(issues))
