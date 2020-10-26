@@ -186,6 +186,9 @@ func checkPeriod(comment string) (pos position, ok bool) {
 // NOTE: First letter is not checked in declaration comments, because they
 // can describe unexported functions, which start from small letter.
 func checkCapital(comment string, skipFirst bool) (pp []position) {
+	// List of states during the scan: `empty` - nothing special,
+	// `endChar` - found one of sentence ending chars (.!?),
+	// `endOfSentence` - found `endChar`, and then space or newline.
 	const empty, endChar, endOfSentence = 1, 2, 3
 
 	pos := position{line: 1}
