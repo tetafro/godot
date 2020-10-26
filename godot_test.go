@@ -55,7 +55,7 @@ func TestRun(t *testing.T) {
 					}
 				}
 			}
-			issues, err := Run(f, fset, Settings{Scope: tt.scope, Period: true})
+			issues, err := Run(f, fset, Settings{Scope: tt.scope, Period: true, Capital: true})
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
@@ -81,7 +81,7 @@ func TestFix(t *testing.T) {
 
 	t.Run("file not found", func(t *testing.T) {
 		path := filepath.Join("testdata", "not-exists.go")
-		_, err := Fix(path, nil, nil, Settings{Period: true})
+		_, err := Fix(path, nil, nil, Settings{})
 		if err == nil {
 			t.Fatal("Expected error, got nil")
 		}
@@ -89,7 +89,7 @@ func TestFix(t *testing.T) {
 
 	t.Run("empty file", func(t *testing.T) {
 		path := filepath.Join("testdata", "empty.go")
-		fixed, err := Fix(path, nil, nil, Settings{Period: true})
+		fixed, err := Fix(path, nil, nil, Settings{})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -101,7 +101,7 @@ func TestFix(t *testing.T) {
 	t.Run("scope: decl", func(t *testing.T) {
 		expected := strings.ReplaceAll(string(content), "[DECL]", "[DECL].")
 
-		fixed, err := Fix(testFile, file, fset, Settings{Scope: DeclScope, Period: true})
+		fixed, err := Fix(testFile, file, fset, Settings{Scope: DeclScope, Period: true, Capital: true})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -113,7 +113,7 @@ func TestFix(t *testing.T) {
 		expected := strings.ReplaceAll(string(content), "[DECL]", "[DECL].")
 		expected = strings.ReplaceAll(expected, "[TOP]", "[TOP].")
 
-		fixed, err := Fix(testFile, file, fset, Settings{Scope: TopLevelScope, Period: true})
+		fixed, err := Fix(testFile, file, fset, Settings{Scope: TopLevelScope, Period: true, Capital: true})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -126,7 +126,7 @@ func TestFix(t *testing.T) {
 		expected = strings.ReplaceAll(expected, "[TOP]", "[TOP].")
 		expected = strings.ReplaceAll(expected, "[ALL]", "[ALL].")
 
-		fixed, err := Fix(testFile, file, fset, Settings{Scope: AllScope, Period: true})
+		fixed, err := Fix(testFile, file, fset, Settings{Scope: AllScope, Period: true, Capital: true})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -154,7 +154,7 @@ func TestReplace(t *testing.T) {
 
 	t.Run("file not found", func(t *testing.T) {
 		path := filepath.Join("testdata", "not-exists.go")
-		err := Replace(path, nil, nil, Settings{Period: true})
+		err := Replace(path, nil, nil, Settings{})
 		if err == nil {
 			t.Fatal("Expected error, got nil")
 		}
@@ -166,7 +166,7 @@ func TestReplace(t *testing.T) {
 		}()
 		expected := strings.ReplaceAll(string(content), "[DECL]", "[DECL].")
 
-		err := Replace(testFile, file, fset, Settings{Scope: DeclScope, Period: true})
+		err := Replace(testFile, file, fset, Settings{Scope: DeclScope, Period: true, Capital: true})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -186,7 +186,7 @@ func TestReplace(t *testing.T) {
 		expected = strings.ReplaceAll(expected, "[TOP]", "[TOP].")
 		expected = strings.ReplaceAll(expected, "[ALL]", "[ALL].")
 
-		err := Replace(testFile, file, fset, Settings{Scope: AllScope, Period: true})
+		err := Replace(testFile, file, fset, Settings{Scope: AllScope, Period: true, Capital: true})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}

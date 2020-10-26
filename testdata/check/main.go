@@ -78,7 +78,7 @@ func Sum(a, b int) int {
 	a++
 	b++
 
-	return a + b // inline comment [ALL]
+	return a + b // Inline comment [ALL]
 }
 
 // Declaration multiline comment

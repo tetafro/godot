@@ -46,5 +46,5 @@ func Example() { // top level inline comment [ALL]
 		fmt.Println("hello, world")
 	}
 
-	prn() // inline comment [ALL]
+	prn() // Inline comment [ALL]
 }
