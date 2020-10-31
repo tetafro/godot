@@ -46,12 +46,9 @@ func Run(file *ast.File, fset *token.FileSet, settings Settings) ([]Issue, error
 		return nil, fmt.Errorf("get comments: %v", err)
 	}
 
-	issues, err := checkComments(fset, comments, settings)
-	if err != nil {
-		return nil, fmt.Errorf("check comments: %v", err)
-	}
-
+	issues := checkComments(fset, comments, settings)
 	sortIssues(issues)
+
 	return issues, nil
 }
 

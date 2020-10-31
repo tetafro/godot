@@ -12,10 +12,7 @@ func TestCheckComments(t *testing.T) {
 		{ast: nil},
 		{ast: &ast.CommentGroup{List: nil}},
 	}
-	issues, err := checkComments(nil, comments, Settings{})
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	issues := checkComments(nil, comments, Settings{})
 	if len(issues) > 0 {
 		t.Fatalf("Unexpected issues: %d", len(issues))
 	}

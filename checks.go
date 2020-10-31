@@ -33,7 +33,7 @@ var (
 
 // checkComments checks every comment accordings to the rules from
 // `settings` argument.
-func checkComments(fset *token.FileSet, comments []comment, settings Settings) ([]Issue, error) {
+func checkComments(fset *token.FileSet, comments []comment, settings Settings) []Issue {
 	var issues []Issue // nolint: prealloc
 	for _, c := range comments {
 		if c.ast == nil || len(c.ast.List) == 0 {
@@ -41,31 +41,23 @@ func checkComments(fset *token.FileSet, comments []comment, settings Settings) (
 		}
 
 		if settings.Period {
-			iss, err := checkCommentForPeriod(fset, c)
-			if err != nil {
-				return nil, fmt.Errorf("check comment for period: %v", err)
-			}
-			if iss != nil {
+			if iss := checkCommentForPeriod(fset, c); iss != nil {
 				issues = append(issues, *iss)
 			}
 		}
 
 		if settings.Capital {
-			iss, err := checkCommentForCapital(fset, c)
-			if err != nil {
-				return nil, fmt.Errorf("check comment for capital: %v", err)
-			}
-			if len(iss) > 0 {
+			if iss := checkCommentForCapital(fset, c); len(iss) > 0 {
 				issues = append(issues, iss...)
 			}
 		}
 	}
-	return issues, nil
+	return issues
 }
 
 // checkCommentForPeriod checks that the last sentense of the comment ends
 // in a period.
-func checkCommentForPeriod(fset *token.FileSet, c comment) (*Issue, error) {
+func checkCommentForPeriod(fset *token.FileSet, c comment) *Issue {
 	// Save global line number and indent
 	start := fset.Position(c.ast.List[0].Slash)
 
@@ -73,7 +65,7 @@ func checkCommentForPeriod(fset *token.FileSet, c comment) (*Issue, error) {
 
 	pos, ok := checkPeriod(text)
 	if ok {
-		return nil, nil
+		return nil
 	}
 
 	// Shift position by the length of comment's special symbols: /* or //
@@ -95,30 +87,18 @@ func checkCommentForPeriod(fset *token.FileSet, c comment) (*Issue, error) {
 	// Make a replacement. Use `pos.line` to get an original line from
 	// attached lines. Use `iss.Pos.Column` because it's a position in
 	// the original line.
-	if pos.line-1 >= len(c.lines) {
-		return nil, fmt.Errorf(
-			"invalid line number inside comment: %s:%d",
-			iss.Pos.Filename, iss.Pos.Line,
-		)
-	}
 	original := []rune(c.lines[pos.line-1])
-	if iss.Pos.Column-1 > len(original) {
-		return nil, fmt.Errorf(
-			"invalid column number inside comment: %s:%d:%d",
-			iss.Pos.Filename, iss.Pos.Line, iss.Pos.Column,
-		)
-	}
 	iss.Replacement = fmt.Sprintf("%s.%s",
 		string(original[:iss.Pos.Column-1]),
 		string(original[iss.Pos.Column-1:]))
 
-	return &iss, nil
+	return &iss
 }
 
 // checkCommentForCapital checks that the each sentense of the comment starts with
 // a capital letter.
 // nolint: unparam
-func checkCommentForCapital(fset *token.FileSet, c comment) ([]Issue, error) {
+func checkCommentForCapital(fset *token.FileSet, c comment) []Issue {
 	// Save global line number and indent
 	start := fset.Position(c.ast.List[0].Slash)
 
@@ -126,7 +106,7 @@ func checkCommentForCapital(fset *token.FileSet, c comment) ([]Issue, error) {
 
 	pp := checkCapital(text, c.decl)
 	if len(pp) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	issues := make([]Issue, len(pp))
@@ -146,9 +126,11 @@ func checkCommentForCapital(fset *token.FileSet, c comment) ([]Issue, error) {
 			},
 			Message: noCapitalMessage,
 		}
+
+		// TODO: Make a replacement
 	}
 
-	return issues, nil
+	return issues
 }
 
 // checkPeriod checks that the last sentense of the text ends in a period.
