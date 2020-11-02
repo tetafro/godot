@@ -1,4 +1,4 @@
-// Package comment without a period [TOP]
+// Package comment without a period [PERIOD_TOP]
 package example
 
 /*
@@ -21,7 +21,8 @@ import (
 // #tag hashtag comment without period [PASS]
 
 /*
-Multiline comment without a period [TOP]
+non-capital-top [CAPITAL_TOP].
+Multiline comment without a period [PERIOD_TOP]
 
 */
 
@@ -29,27 +30,27 @@ Multiline comment without a period [TOP]
 Multiline comment with a period [PASS].
 */
 
-/* One-line comment without a period [TOP] */
+/* One-line comment without a period [PERIOD_TOP] */
 
 /* One-line comment with a period [PASS]. */
 
-// Single-line comment without a period [TOP]
+// Single-line comment without a period [PERIOD_TOP]
 
 // Single-line comment with a period [PASS].
 
-// Block comment [DECL]
+// Block comment [PERIOD_DECL]
 const (
-	// Inside comment [DECL]
+	// Inside comment [PERIOD_DECL]
 	constant1 = "constant1"
 	// Inside comment [PASS].
 	constant2 = "constant2"
 )
 
-// Declaration comment without a period [DECL]
+// Declaration comment without a period [PERIOD_DECL]
 type SimpleObject struct {
-	// Exported field comment [ALL]
+	// Exported field comment [PERIOD_ALL]
 	Type string
-	// Unexported field comment [ALL]
+	// Unexported field comment [PERIOD_ALL]
 	secret int
 }
 
@@ -57,9 +58,9 @@ type SimpleObject struct {
 //   co := ComplexObject{}
 //   fmt.Println(co) // [PASS]
 type ComplexObject struct {
-	// Exported field comment [ALL]
+	// Exported field comment [PERIOD_ALL]
 	Type string
-	// Unexported field comment [ALL]
+	// Unexported field comment [PERIOD_ALL]
 	secret int
 }
 
@@ -74,16 +75,16 @@ type Message struct {
 // second line
 // third line with a period [PASS].
 func Sum(a, b int) int {
-	// Inner comment [ALL]
+	// Inner comment [PERIOD_ALL]
 	a++
 	b++
 
-	return a + b // Inline comment [ALL]
+	return a + b // Inline comment [PERIOD_ALL]
 }
 
 // Declaration multiline comment
 // second line
-// third line without a period [DECL]
+// third line without a period [PERIOD_DECL]
 func Mult(a, b int) int {
 	return a * b
 }
@@ -93,7 +94,7 @@ func CgoExportedFunction(a, b int) int {
 	return a + b
 }
 
-// Кириллица [DECL]
+// Кириллица [PERIOD_DECL]
 func NonLatin() string {
 	return "привет, мир"
 }
@@ -110,12 +111,18 @@ func noComment() {
 }
 
 func inside() {
-	// Not a top level declaration [ALL]
+	// Not a top level declaration [PERIOD_ALL]
 	type thing struct {
 		field string
 	}
-	t := thing{} // Inline comment [ALL]
+	t := thing{} // Inline comment [PERIOD_ALL]
 	println(t)
+}
+
+// nonCapital is a function. non-capital-decl first letter [CAPITAL_DECL].
+func nonCapital() int {
+	// non-capital-all [CAPITAL_ALL].
+	return 10 // non-capital-all [CAPITAL_ALL].
 }
 
 // Comment with a URL - http://example.com/[PASS]

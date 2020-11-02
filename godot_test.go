@@ -24,19 +24,28 @@ func TestRun(t *testing.T) {
 		contains []string
 	}{
 		{
-			name:     "scope: decl",
-			scope:    DeclScope,
-			contains: []string{"[DECL]"},
+			name:  "scope: decl",
+			scope: DeclScope,
+			contains: []string{
+				"[PERIOD_DECL]", "[CAPITAL_DECL]",
+			},
 		},
 		{
-			name:     "scope: top",
-			scope:    TopLevelScope,
-			contains: []string{"[DECL]", "[TOP]"},
+			name:  "scope: top",
+			scope: TopLevelScope,
+			contains: []string{
+				"[PERIOD_DECL]", "[CAPITAL_DECL]",
+				"[PERIOD_TOP]", "[CAPITAL_TOP]",
+			},
 		},
 		{
-			name:     "scope: all",
-			scope:    AllScope,
-			contains: []string{"[DECL]", "[TOP]", "[ALL]"},
+			name:  "scope: all",
+			scope: AllScope,
+			contains: []string{
+				"[PERIOD_DECL]", "[CAPITAL_DECL]",
+				"[PERIOD_TOP]", "[CAPITAL_TOP]",
+				"[PERIOD_ALL]", "[CAPITAL_ALL]",
+			},
 		},
 	}
 
@@ -49,9 +58,8 @@ func TestRun(t *testing.T) {
 					continue
 				}
 				for _, s := range tt.contains {
-					if strings.Contains(c.Text(), s) {
-						expected++
-						break
+					if cnt := strings.Count(c.Text(), s); cnt > 0 {
+						expected += cnt
 					}
 				}
 			}
@@ -99,7 +107,8 @@ func TestFix(t *testing.T) {
 	})
 
 	t.Run("scope: decl", func(t *testing.T) {
-		expected := strings.ReplaceAll(string(content), "[DECL]", "[DECL].")
+		expected := strings.ReplaceAll(string(content), "[PERIOD_DECL]", "[PERIOD_DECL].")
+		expected = strings.ReplaceAll(expected, "non-capital-decl", "Non-capital-decl")
 
 		fixed, err := Fix(testFile, file, fset, Settings{Scope: DeclScope, Period: true, Capital: true})
 		if err != nil {
@@ -110,8 +119,10 @@ func TestFix(t *testing.T) {
 	})
 
 	t.Run("scope: top", func(t *testing.T) {
-		expected := strings.ReplaceAll(string(content), "[DECL]", "[DECL].")
-		expected = strings.ReplaceAll(expected, "[TOP]", "[TOP].")
+		expected := strings.ReplaceAll(string(content), "[PERIOD_DECL]", "[PERIOD_DECL].")
+		expected = strings.ReplaceAll(expected, "[PERIOD_TOP]", "[PERIOD_TOP].")
+		expected = strings.ReplaceAll(expected, "non-capital-decl", "Non-capital-decl")
+		expected = strings.ReplaceAll(expected, "non-capital-top", "Non-capital-top")
 
 		fixed, err := Fix(testFile, file, fset, Settings{Scope: TopLevelScope, Period: true, Capital: true})
 		if err != nil {
@@ -122,9 +133,12 @@ func TestFix(t *testing.T) {
 	})
 
 	t.Run("scope: all", func(t *testing.T) {
-		expected := strings.ReplaceAll(string(content), "[DECL]", "[DECL].")
-		expected = strings.ReplaceAll(expected, "[TOP]", "[TOP].")
-		expected = strings.ReplaceAll(expected, "[ALL]", "[ALL].")
+		expected := strings.ReplaceAll(string(content), "[PERIOD_DECL]", "[PERIOD_DECL].")
+		expected = strings.ReplaceAll(expected, "[PERIOD_TOP]", "[PERIOD_TOP].")
+		expected = strings.ReplaceAll(expected, "[PERIOD_ALL]", "[PERIOD_ALL].")
+		expected = strings.ReplaceAll(expected, "non-capital-decl", "Non-capital-decl")
+		expected = strings.ReplaceAll(expected, "non-capital-top", "Non-capital-top")
+		expected = strings.ReplaceAll(expected, "non-capital-all", "Non-capital-all")
 
 		fixed, err := Fix(testFile, file, fset, Settings{Scope: AllScope, Period: true, Capital: true})
 		if err != nil {
@@ -164,7 +178,8 @@ func TestReplace(t *testing.T) {
 		defer func() {
 			ioutil.WriteFile(testFile, content, mode) // nolint: errcheck,gosec
 		}()
-		expected := strings.ReplaceAll(string(content), "[DECL]", "[DECL].")
+		expected := strings.ReplaceAll(string(content), "[PERIOD_DECL]", "[PERIOD_DECL].")
+		expected = strings.ReplaceAll(expected, "non-capital-decl", "Non-capital-decl")
 
 		err := Replace(testFile, file, fset, Settings{Scope: DeclScope, Period: true, Capital: true})
 		if err != nil {
@@ -182,9 +197,33 @@ func TestReplace(t *testing.T) {
 		defer func() {
 			ioutil.WriteFile(testFile, content, mode) // nolint: errcheck,gosec
 		}()
-		expected := strings.ReplaceAll(string(content), "[DECL]", "[DECL].")
-		expected = strings.ReplaceAll(expected, "[TOP]", "[TOP].")
-		expected = strings.ReplaceAll(expected, "[ALL]", "[ALL].")
+		expected := strings.ReplaceAll(string(content), "[PERIOD_DECL]", "[PERIOD_DECL].")
+		expected = strings.ReplaceAll(expected, "[PERIOD_TOP]", "[PERIOD_TOP].")
+		expected = strings.ReplaceAll(expected, "non-capital-decl", "Non-capital-decl")
+		expected = strings.ReplaceAll(expected, "non-capital-top", "Non-capital-top")
+
+		err := Replace(testFile, file, fset, Settings{Scope: TopLevelScope, Period: true, Capital: true})
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		fixed, err := ioutil.ReadFile(testFile) // nolint: gosec
+		if err != nil {
+			t.Fatalf("Failed to read fixed file %s: %v", testFile, err)
+		}
+
+		assertEqualContent(t, expected, string(fixed))
+	})
+
+	t.Run("scope: all", func(t *testing.T) {
+		defer func() {
+			ioutil.WriteFile(testFile, content, mode) // nolint: errcheck,gosec
+		}()
+		expected := strings.ReplaceAll(string(content), "[PERIOD_DECL]", "[PERIOD_DECL].")
+		expected = strings.ReplaceAll(expected, "[PERIOD_TOP]", "[PERIOD_TOP].")
+		expected = strings.ReplaceAll(expected, "[PERIOD_ALL]", "[PERIOD_ALL].")
+		expected = strings.ReplaceAll(expected, "non-capital-decl", "Non-capital-decl")
+		expected = strings.ReplaceAll(expected, "non-capital-top", "Non-capital-top")
+		expected = strings.ReplaceAll(expected, "non-capital-all", "Non-capital-all")
 
 		err := Replace(testFile, file, fset, Settings{Scope: AllScope, Period: true, Capital: true})
 		if err != nil {

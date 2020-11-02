@@ -2,9 +2,10 @@
 
 Integration test for `getComments` method.
 
-- If line contains `[DECL]` string, it should be extracted by `getComments`
-with `scope` argument one of: `DeclScope`, `TopLevelScope`, `AllScope`.
-- If line contains `[TOP]` string, it should be extracted by `getComments`
-with `scope` argument one of: `TopLevelScope`, `AllScope`.
-- If line contains `[ALL]` string, it should be extracted by `getComments`
-with `scope` argument `AllScope`.
+Tags:
+- `[DECL]` - line should be extracted by `getComments` with `scope` argument
+one of: `DeclScope`, `TopLevelScope`, `AllScope`.
+- `[TOP]` - line should be extracted by `getComments` with `scope` argument
+one of: `TopLevelScope`, `AllScope`.
+- `[ALL]` - line should be extracted by `getComments` with `scope` argument
+`AllScope`.

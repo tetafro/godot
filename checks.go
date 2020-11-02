@@ -1,7 +1,6 @@
 package godot
 
 import (
-	"fmt"
 	"go/token"
 	"regexp"
 	"strings"
@@ -88,9 +87,12 @@ func checkCommentForPeriod(fset *token.FileSet, c comment) *Issue {
 	// attached lines. Use `iss.Pos.Column` because it's a position in
 	// the original line.
 	original := []rune(c.lines[pos.line-1])
-	iss.Replacement = fmt.Sprintf("%s.%s",
-		string(original[:iss.Pos.Column-1]),
-		string(original[iss.Pos.Column-1:]))
+	iss.Replacement = string(original[:iss.Pos.Column-1]) + "." +
+		string(original[iss.Pos.Column-1:])
+
+	// Save replacement to raw lines to be able to combine it with
+	// further replacements
+	c.lines[pos.line-1] = iss.Replacement
 
 	return &iss
 }
@@ -117,7 +119,7 @@ func checkCommentForCapital(fset *token.FileSet, c comment) []Issue {
 			pos.column += 2
 		}
 
-		issues[i] = Issue{
+		iss := Issue{
 			Pos: token.Position{
 				Filename: start.Filename,
 				Offset:   start.Offset,
@@ -127,7 +129,18 @@ func checkCommentForCapital(fset *token.FileSet, c comment) []Issue {
 			Message: noCapitalMessage,
 		}
 
-		// TODO: Make a replacement
+		// Make a replacement. Use `pos.line` to get an original line from
+		// attached lines. Use `iss.Pos.Column` because it's a position in
+		// the original line.
+		rep := []rune(c.lines[pos.line-1])
+		rep[iss.Pos.Column-1] = unicode.ToTitle(rep[iss.Pos.Column-1])
+		iss.Replacement = string(rep)
+
+		// Save replacement to raw lines to be able to combine it with
+		// further replacements
+		c.lines[pos.line-1] = iss.Replacement
+
+		issues[i] = iss
 	}
 
 	return issues
