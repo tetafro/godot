@@ -18,9 +18,9 @@ type Scope string
 // List of available check scopes.
 const (
 	// DeclScope is for top level declaration comments.
-	DeclScope Scope = "decl"
+	DeclScope Scope = "declarations"
 	// TopLevelScope is for all top level comments.
-	TopLevelScope Scope = "top"
+	TopLevelScope Scope = "toplevel"
 	// AllScope is for all comments.
 	AllScope Scope = "all"
 )

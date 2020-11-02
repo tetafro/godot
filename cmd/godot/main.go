@@ -21,9 +21,9 @@ const usage = `Usage:
 Options:
     -c, --capital   check that sentences start with a capital letter
     -s, --scope     set scope for check
-                    decl - for top level declaration comments
-                    top  - for top level comments (default)
-                    all  - for all comments
+                    declarations - for top level declaration comments (default)
+                    toplevel     - for top level comments
+                    all          - for all comments
     -f, --fix       fix issues, and print fixed version to stdout
     -h, --help      show this message
     -v, --version   show version
@@ -159,7 +159,7 @@ func readArgs() (args arguments, err error) {
 	}
 
 	if args.scope == "" {
-		args.scope = string(godot.TopLevelScope)
+		args.scope = string(godot.DeclScope)
 	}
 
 	if !args.help && !args.version && len(args.files) == 0 {
