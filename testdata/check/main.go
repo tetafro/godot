@@ -126,3 +126,6 @@ func nonCapital() int {
 }
 
 // Comment with a URL - http://example.com/[PASS]
+
+// Multiline comment with a URL
+// http://example.com/[PASS]

@@ -9,6 +9,11 @@ import (
 	"strings"
 )
 
+// specialReplacer is a replacer for some types of special lines in comments,
+// which shouldn't be checked. For example, if comment ends with a block of
+// code it should not necessarily have a period at the end.
+const specialReplacer = "<godotSpecialReplacer>"
+
 // getComments extracts comments from a file.
 func getComments(file *ast.File, fset *token.FileSet, scope Scope) ([]comment, error) {
 	if len(file.Comments) == 0 {
@@ -149,7 +154,8 @@ func getAllComments(file *ast.File, fset *token.FileSet, lines []string) []comme
 // getText extracts text from comment. If comment is a special block
 // (e.g., CGO code), a block of empty lines is returned. If comment contains
 // special lines (e.g., tags or indented code examples), they are replaced
-// with an empty line. The result can be multiline.
+// with `specialReplacer` to skip checks for it.
+// The result can be multiline.
 func getText(comment *ast.CommentGroup) (s string) {
 	if len(comment.List) == 1 &&
 		strings.HasPrefix(comment.List[0].Text, "/*") &&
@@ -167,7 +173,7 @@ func getText(comment *ast.CommentGroup) (s string) {
 		}
 		for _, line := range strings.Split(text, "\n") {
 			if isSpecialLine(line) {
-				s += "\n"
+				s += specialReplacer + "\n"
 				continue
 			}
 			if !isBlock {

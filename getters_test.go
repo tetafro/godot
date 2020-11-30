@@ -131,7 +131,22 @@ func TestGetText(t *testing.T) {
 				{Text: "// +k8s:deepcopy-gen=package"},
 				{Text: "// +nolint: gosec"},
 			}},
-			text: " One\n\n\n Two\n\n Three\n\n",
+			text: " One\n" +
+				"\n" +
+				"<godotSpecialReplacer>\n" +
+				" Two\n" +
+				"<godotSpecialReplacer>\n" +
+				" Three\n" +
+				"<godotSpecialReplacer>\n" +
+				"<godotSpecialReplacer>",
+		},
+		{
+			name: "block of singleline comments with a url at the end",
+			comment: &ast.CommentGroup{List: []*ast.Comment{
+				{Text: "// Read more"},
+				{Text: "// http://example.com"},
+			}},
+			text: " Read more\n<godotSpecialReplacer>",
 		},
 		{
 			name: "cgo block",
@@ -157,8 +172,8 @@ func TestGetText(t *testing.T) {
 			}},
 			text: "\n" +
 				"Example:\n" +
-				"\n" +
-				"\n" +
+				"<godotSpecialReplacer>\n" +
+				"<godotSpecialReplacer>\n" +
 				"",
 		},
 		{

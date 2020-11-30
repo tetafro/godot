@@ -16,9 +16,7 @@ const (
 var (
 	// List of valid sentence ending.
 	// A sentence can be inside parenthesis, and therefore ends with parenthesis.
-	// A colon is a valid sentence ending, because it can be followed by a
-	// code example which is not checked.
-	lastChars = []string{".", "?", "!", ".)", "?)", "!)", ":"}
+	lastChars = []string{".", "?", "!", ".)", "?)", "!)", specialReplacer}
 
 	// Special tags in comments like "// nolint:", or "// +k8s:".
 	tags = regexp.MustCompile(`^\+?[a-z0-9]+:`)
