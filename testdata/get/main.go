@@ -4,6 +4,14 @@ package example
 // Import comment [DECL].
 import "fmt"
 
+// Not gofmt-ed code [DECL].
+const (
+    one = 1
+
+        two = 2
+    
+)
+
 // Top level one-line comment [TOP].
 
 // Top level

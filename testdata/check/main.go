@@ -16,6 +16,14 @@ import (
 	"unsafe"
 )
 
+// Not gofmt-ed code [PASS].
+const (
+    one = 1
+
+        two = 2
+    
+)
+
 //args: tagged comment without period [PASS]
 
 // #tag hashtag comment without period [PASS]
