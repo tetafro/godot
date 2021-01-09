@@ -8,6 +8,7 @@ import (
 	"go/token"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -42,11 +43,20 @@ type comment struct {
 
 // Run runs this linter on the provided code.
 func Run(file *ast.File, fset *token.FileSet, settings Settings) ([]Issue, error) {
-	comments, err := getComments(file, fset, settings.Scope)
+	pf, err := newParsedFile(file, fset)
 	if err != nil {
-		return nil, fmt.Errorf("get comments: %v", err)
+		return nil, fmt.Errorf("parse input file: %v", err)
 	}
 
+	var exclude *regexp.Regexp
+	if settings.Exclude != "" {
+		exclude, err = regexp.Compile(settings.Exclude)
+		if err != nil {
+			return nil, fmt.Errorf("invalid regexp: %v", err)
+		}
+	}
+
+	comments := pf.getComments(settings.Scope, exclude)
 	issues := checkComments(comments, settings)
 	sortIssues(issues)
 

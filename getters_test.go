@@ -5,6 +5,7 @@ import (
 	"go/parser"
 	"go/token"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -13,6 +14,11 @@ func TestGetComments(t *testing.T) {
 	testFile := filepath.Join("testdata", "get", "main.go")
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("Failed to parse input file: %v", err)
+	}
+
+	pf, err := newParsedFile(file, fset)
 	if err != nil {
 		t.Fatalf("Failed to parse input file: %v", err)
 	}
@@ -42,10 +48,7 @@ func TestGetComments(t *testing.T) {
 	for _, tt := range testCases {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			comments, err := getComments(file, fset, tt.scope)
-			if err != nil {
-				t.Fatalf("Unexpected error: %v", err)
-			}
+			comments := pf.getComments(tt.scope, nil)
 			var expected int
 			for _, c := range comments {
 				if linesContain(c.lines, "[NONE]") {
@@ -73,6 +76,7 @@ func TestGetText(t *testing.T) {
 		name    string
 		comment *ast.CommentGroup
 		text    string
+		exclude *regexp.Regexp
 	}{
 		{
 			name: "regular text",
@@ -180,12 +184,46 @@ func TestGetText(t *testing.T) {
 			comment: &ast.CommentGroup{List: []*ast.Comment{}},
 			text:    "",
 		},
+		{
+			name: "single excluded line",
+			comment: &ast.CommentGroup{List: []*ast.Comment{
+				{Text: "// Hello, world."},
+			}},
+			text:    "<godotSpecialReplacer>",
+			exclude: regexp.MustCompile("Hello"),
+		},
+		{
+			name: "excluded line in the middle",
+			comment: &ast.CommentGroup{List: []*ast.Comment{
+				{Text: "/*\n" +
+					"Read more:\n" +
+					"@intenal.link\n" +
+					"Thanks." +
+					"*/"},
+			}},
+			text: "\n" +
+				"Read more:\n" +
+				"<godotSpecialReplacer>\n" +
+				"Thanks." +
+				"",
+			exclude: regexp.MustCompile("^@.+"),
+		},
+		{
+			name: "excluded line at the end",
+			comment: &ast.CommentGroup{List: []*ast.Comment{
+				{Text: "/* Read more:\n" +
+					"@intenal.link */"},
+			}},
+			text: " Read more:\n" +
+				"<godotSpecialReplacer>",
+			exclude: regexp.MustCompile("^@.+"),
+		},
 	}
 
 	for _, tt := range testCases {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			if text := getText(tt.comment); text != tt.text {
+			if text := getText(tt.comment, tt.exclude); text != tt.text {
 				t.Fatalf("Wrong text\n  expected: '%s'\n       got: '%s'", tt.text, text)
 			}
 		})

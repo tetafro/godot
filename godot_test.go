@@ -10,12 +10,26 @@ import (
 	"testing"
 )
 
+// testExclude is a test regexp to exclude lines that starts with @ symbol.
+const testExclude = "^ ?@"
+
 func TestRun(t *testing.T) {
 	testFile := filepath.Join("testdata", "check", "main.go")
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
 	if err != nil {
 		t.Fatalf("Failed to parse input file: %v", err)
+	}
+
+	// Test invalid regexp
+	_, err = Run(f, fset, Settings{
+		Scope:   DeclScope,
+		Exclude: "[",
+		Period:  true,
+		Capital: true,
+	})
+	if err == nil {
+		t.Fatalf("Expected error, got nil on regexp parsing")
 	}
 
 	testCases := []struct {
@@ -63,7 +77,12 @@ func TestRun(t *testing.T) {
 					}
 				}
 			}
-			issues, err := Run(f, fset, Settings{Scope: tt.scope, Period: true, Capital: true})
+			issues, err := Run(f, fset, Settings{
+				Scope:   tt.scope,
+				Exclude: testExclude,
+				Period:  true,
+				Capital: true,
+			})
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
@@ -110,7 +129,12 @@ func TestFix(t *testing.T) {
 		expected := strings.ReplaceAll(string(content), "[PERIOD_DECL]", "[PERIOD_DECL].")
 		expected = strings.ReplaceAll(expected, "non-capital-decl", "Non-capital-decl")
 
-		fixed, err := Fix(testFile, file, fset, Settings{Scope: DeclScope, Period: true, Capital: true})
+		fixed, err := Fix(testFile, file, fset, Settings{
+			Scope:   DeclScope,
+			Exclude: testExclude,
+			Period:  true,
+			Capital: true,
+		})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -124,7 +148,12 @@ func TestFix(t *testing.T) {
 		expected = strings.ReplaceAll(expected, "non-capital-decl", "Non-capital-decl")
 		expected = strings.ReplaceAll(expected, "non-capital-top", "Non-capital-top")
 
-		fixed, err := Fix(testFile, file, fset, Settings{Scope: TopLevelScope, Period: true, Capital: true})
+		fixed, err := Fix(testFile, file, fset, Settings{
+			Scope:   TopLevelScope,
+			Exclude: testExclude,
+			Period:  true,
+			Capital: true,
+		})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -140,7 +169,12 @@ func TestFix(t *testing.T) {
 		expected = strings.ReplaceAll(expected, "non-capital-top", "Non-capital-top")
 		expected = strings.ReplaceAll(expected, "non-capital-all", "Non-capital-all")
 
-		fixed, err := Fix(testFile, file, fset, Settings{Scope: AllScope, Period: true, Capital: true})
+		fixed, err := Fix(testFile, file, fset, Settings{
+			Scope:   AllScope,
+			Exclude: testExclude,
+			Period:  true,
+			Capital: true,
+		})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -181,7 +215,12 @@ func TestReplace(t *testing.T) {
 		expected := strings.ReplaceAll(string(content), "[PERIOD_DECL]", "[PERIOD_DECL].")
 		expected = strings.ReplaceAll(expected, "non-capital-decl", "Non-capital-decl")
 
-		err := Replace(testFile, file, fset, Settings{Scope: DeclScope, Period: true, Capital: true})
+		err := Replace(testFile, file, fset, Settings{
+			Scope:   DeclScope,
+			Exclude: testExclude,
+			Period:  true,
+			Capital: true,
+		})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -202,7 +241,12 @@ func TestReplace(t *testing.T) {
 		expected = strings.ReplaceAll(expected, "non-capital-decl", "Non-capital-decl")
 		expected = strings.ReplaceAll(expected, "non-capital-top", "Non-capital-top")
 
-		err := Replace(testFile, file, fset, Settings{Scope: TopLevelScope, Period: true, Capital: true})
+		err := Replace(testFile, file, fset, Settings{
+			Scope:   TopLevelScope,
+			Exclude: testExclude,
+			Period:  true,
+			Capital: true,
+		})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -225,7 +269,12 @@ func TestReplace(t *testing.T) {
 		expected = strings.ReplaceAll(expected, "non-capital-top", "Non-capital-top")
 		expected = strings.ReplaceAll(expected, "non-capital-all", "Non-capital-all")
 
-		err := Replace(testFile, file, fset, Settings{Scope: AllScope, Period: true, Capital: true})
+		err := Replace(testFile, file, fset, Settings{
+			Scope:   AllScope,
+			Exclude: testExclude,
+			Period:  true,
+			Capital: true,
+		})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}

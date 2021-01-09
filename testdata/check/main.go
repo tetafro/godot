@@ -125,6 +125,7 @@ func inside() {
 	}
 	t := thing{} // Inline comment [PERIOD_ALL]
 	println(t)
+	// @Comment without a period excluded by regexp pattern [PASS]
 }
 
 // nonCapital is a function. non-capital-decl first letter [CAPITAL_DECL].
@@ -137,3 +138,5 @@ func nonCapital() int {
 
 // Multiline comment with a URL
 // http://example.com/[PASS]
+
+// @Comment without a period excluded by regexp pattern [PASS]
