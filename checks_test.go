@@ -1,22 +1,6 @@
 package godot
 
-import (
-	"go/ast"
-	"testing"
-)
-
-func TestCheckComments(t *testing.T) {
-	// Check only case with empty input, other cases are checked in TestRun
-
-	comments := []comment{
-		{ast: nil},
-		{ast: &ast.CommentGroup{List: nil}},
-	}
-	issues := checkComments(nil, comments, Settings{})
-	if len(issues) > 0 {
-		t.Fatalf("Unexpected issues: %d", len(issues))
-	}
-}
+import "testing"
 
 func TestCheckPeriod(t *testing.T) {
 	testCases := []struct {

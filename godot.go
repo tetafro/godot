@@ -30,13 +30,14 @@ type position struct {
 	column int
 }
 
-// comment is an internal representation of AST comment entity with rendered
-// lines attached. The latter is used for creating a full replacement for
+// comment is an internal representation of AST comment entity with additional
+// data attached. The latter is used for creating a full replacement for
 // the line with issues.
 type comment struct {
-	ast   *ast.CommentGroup
-	lines []string
-	decl  bool
+	lines []string       // unmodified lines from file
+	text  string         // concatenated `lines` with special parts excluded
+	start token.Position // position of the first symbol in comment
+	decl  bool           // whether comment is a special one (should not be checked)
 }
 
 // Run runs this linter on the provided code.
@@ -46,7 +47,7 @@ func Run(file *ast.File, fset *token.FileSet, settings Settings) ([]Issue, error
 		return nil, fmt.Errorf("get comments: %v", err)
 	}
 
-	issues := checkComments(fset, comments, settings)
+	issues := checkComments(comments, settings)
 	sortIssues(issues)
 
 	return issues, nil

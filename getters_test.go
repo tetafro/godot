@@ -48,12 +48,11 @@ func TestGetComments(t *testing.T) {
 			}
 			var expected int
 			for _, c := range comments {
-				if strings.Contains(c.ast.Text(), "[NONE]") {
+				if linesContain(c.lines, "[NONE]") {
 					continue
 				}
-				text := c.ast.Text()
 				for _, s := range tt.contains {
-					if strings.Contains(text, s) {
+					if strings.Contains(c.text, s) {
 						expected++
 						break
 					}
@@ -191,4 +190,13 @@ func TestGetText(t *testing.T) {
 			}
 		})
 	}
+}
+
+func linesContain(lines []string, s string) bool {
+	for _, ln := range lines {
+		if strings.Contains(ln, s) {
+			return true
+		}
+	}
+	return false
 }

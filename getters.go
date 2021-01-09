@@ -73,6 +73,9 @@ func getBlockComments(file *ast.File, fset *token.FileSet, lines []string) []com
 			continue
 		}
 		for _, c := range file.Comments {
+			if c == nil || len(c.List) == 0 {
+				continue
+			}
 			// Skip comments outside this block
 			if d.Lparen > c.Pos() || c.Pos() > d.Rparen {
 				continue
@@ -87,8 +90,9 @@ func getBlockComments(file *ast.File, fset *token.FileSet, lines []string) []com
 			firstLine := fset.Position(c.Pos()).Line
 			lastLine := fset.Position(c.End()).Line
 			comments = append(comments, comment{
-				ast:   c,
 				lines: lines[firstLine-1 : lastLine],
+				text:  getText(c),
+				start: fset.Position(c.List[0].Slash),
 			})
 		}
 	}
@@ -99,14 +103,18 @@ func getBlockComments(file *ast.File, fset *token.FileSet, lines []string) []com
 func getTopLevelComments(file *ast.File, fset *token.FileSet, lines []string) []comment {
 	var comments []comment // nolint: prealloc
 	for _, c := range file.Comments {
+		if c == nil || len(c.List) == 0 {
+			continue
+		}
 		if fset.Position(c.Pos()).Column != 1 {
 			continue
 		}
 		firstLine := fset.Position(c.Pos()).Line
 		lastLine := fset.Position(c.End()).Line
 		comments = append(comments, comment{
-			ast:   c,
 			lines: lines[firstLine-1 : lastLine],
+			text:  getText(c),
+			start: fset.Position(c.List[0].Slash),
 		})
 	}
 	return comments
@@ -124,15 +132,16 @@ func getDeclarationComments(file *ast.File, fset *token.FileSet, lines []string)
 			cg = d.Doc
 		}
 
-		if cg == nil {
+		if cg == nil || len(cg.List) == 0 {
 			continue
 		}
 
 		firstLine := fset.Position(cg.Pos()).Line
 		lastLine := fset.Position(cg.End()).Line
 		comments = append(comments, comment{
-			ast:   cg,
 			lines: lines[firstLine-1 : lastLine],
+			text:  getText(cg),
+			start: fset.Position(cg.List[0].Slash),
 		})
 	}
 	return comments
@@ -142,11 +151,15 @@ func getDeclarationComments(file *ast.File, fset *token.FileSet, lines []string)
 func getAllComments(file *ast.File, fset *token.FileSet, lines []string) []comment {
 	var comments []comment //nolint: prealloc
 	for _, c := range file.Comments {
+		if c == nil || len(c.List) == 0 {
+			continue
+		}
 		firstLine := fset.Position(c.Pos()).Line
 		lastLine := fset.Position(c.End()).Line
 		comments = append(comments, comment{
-			ast:   c,
 			lines: lines[firstLine-1 : lastLine],
+			start: fset.Position(c.List[0].Slash),
+			text:  getText(c),
 		})
 	}
 	return comments
@@ -203,7 +216,7 @@ func readFile(file *ast.File, fset *token.FileSet) ([]string, error) {
 func setDecl(comments, decl []comment) {
 	for _, d := range decl {
 		for i, c := range comments {
-			if d.ast.Pos() == c.ast.Pos() {
+			if d.start == c.start {
 				comments[i].decl = true
 				break
 			}
