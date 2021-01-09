@@ -28,7 +28,7 @@ func getComments(file *ast.File, fset *token.FileSet, scope Scope) ([]comment, e
 		return nil, fmt.Errorf("read file: %v", err)
 	}
 
-	// Check consistency to avoid checking index in each function
+	// Check consistency to avoid checking slice indexes in each function
 	lastComment := file.Comments[len(file.Comments)-1]
 	if p := fset.Position(lastComment.End()); len(lines) < p.Line {
 		return nil, fmt.Errorf("inconsistence between file and AST: %s", p.Filename)
@@ -59,8 +59,8 @@ func getComments(file *ast.File, fset *token.FileSet, scope Scope) ([]comment, e
 	return comments, nil
 }
 
-// getBlockComments gets comments from the inside of top level
-// blocks: var (...), const (...).
+// getBlockComments gets comments from the inside of top level blocks:
+// var (...), const (...).
 func getBlockComments(file *ast.File, fset *token.FileSet, lines []string) []comment {
 	var comments []comment
 	for _, decl := range file.Decls {
