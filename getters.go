@@ -47,7 +47,7 @@ func newParsedFile(file *ast.File, fset *token.FileSet) (*parsedFile, error) {
 }
 
 // getComments extracts comments from a file.
-func (pf *parsedFile) getComments(scope Scope, exclude *regexp.Regexp) []comment {
+func (pf *parsedFile) getComments(scope Scope, exclude []*regexp.Regexp) []comment {
 	if len(pf.file.Comments) == 0 {
 		return nil
 	}
@@ -79,7 +79,7 @@ func (pf *parsedFile) getComments(scope Scope, exclude *regexp.Regexp) []comment
 
 // getBlockComments gets comments from the inside of top level blocks:
 // var (...), const (...).
-func (pf *parsedFile) getBlockComments(exclude *regexp.Regexp) []comment {
+func (pf *parsedFile) getBlockComments(exclude []*regexp.Regexp) []comment {
 	var comments []comment
 	for _, decl := range pf.file.Decls {
 		d, ok := decl.(*ast.GenDecl)
@@ -118,7 +118,7 @@ func (pf *parsedFile) getBlockComments(exclude *regexp.Regexp) []comment {
 }
 
 // getTopLevelComments gets all top level comments.
-func (pf *parsedFile) getTopLevelComments(exclude *regexp.Regexp) []comment {
+func (pf *parsedFile) getTopLevelComments(exclude []*regexp.Regexp) []comment {
 	var comments []comment // nolint: prealloc
 	for _, c := range pf.file.Comments {
 		if c == nil || len(c.List) == 0 {
@@ -139,7 +139,7 @@ func (pf *parsedFile) getTopLevelComments(exclude *regexp.Regexp) []comment {
 }
 
 // getDeclarationComments gets top level declaration comments.
-func (pf *parsedFile) getDeclarationComments(exclude *regexp.Regexp) []comment {
+func (pf *parsedFile) getDeclarationComments(exclude []*regexp.Regexp) []comment {
 	var comments []comment // nolint: prealloc
 	for _, decl := range pf.file.Decls {
 		var cg *ast.CommentGroup
@@ -166,7 +166,7 @@ func (pf *parsedFile) getDeclarationComments(exclude *regexp.Regexp) []comment {
 }
 
 // getAllComments gets every single comment from the file.
-func (pf *parsedFile) getAllComments(exclude *regexp.Regexp) []comment {
+func (pf *parsedFile) getAllComments(exclude []*regexp.Regexp) []comment {
 	var comments []comment //nolint: prealloc
 	for _, c := range pf.file.Comments {
 		if c == nil || len(c.List) == 0 {
@@ -188,7 +188,7 @@ func (pf *parsedFile) getAllComments(exclude *regexp.Regexp) []comment {
 // special lines (e.g., tags or indented code examples), they are replaced
 // with `specialReplacer` to skip checks for it.
 // The result can be multiline.
-func getText(comment *ast.CommentGroup, exclude *regexp.Regexp) (s string) {
+func getText(comment *ast.CommentGroup, exclude []*regexp.Regexp) (s string) {
 	if len(comment.List) == 1 &&
 		strings.HasPrefix(comment.List[0].Text, "/*") &&
 		isSpecialBlock(comment.List[0].Text) {
@@ -211,7 +211,7 @@ func getText(comment *ast.CommentGroup, exclude *regexp.Regexp) (s string) {
 			if !isBlock {
 				line = strings.TrimPrefix(line, "//")
 			}
-			if exclude != nil && exclude.MatchString(line) {
+			if matchAny(line, exclude) {
 				s += specialReplacer + "\n"
 				continue
 			}
@@ -244,4 +244,14 @@ func setDecl(comments, decl []comment) {
 			}
 		}
 	}
+}
+
+// matchAny checks if string matches any of given regexps.
+func matchAny(s string, rr []*regexp.Regexp) bool {
+	for _, re := range rr {
+		if re.MatchString(s) {
+			return true
+		}
+	}
+	return false
 }

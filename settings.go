@@ -6,7 +6,7 @@ type Settings struct {
 	Scope Scope
 
 	// Regexp for excluding particular comment lines from check.
-	Exclude string
+	Exclude []string
 
 	// Check periods at the end of sentences.
 	Period bool

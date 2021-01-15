@@ -223,7 +223,11 @@ func TestGetText(t *testing.T) {
 	for _, tt := range testCases {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			if text := getText(tt.comment, tt.exclude); text != tt.text {
+			var re []*regexp.Regexp
+			if tt.exclude != nil {
+				re = []*regexp.Regexp{tt.exclude}
+			}
+			if text := getText(tt.comment, re); text != tt.text {
 				t.Fatalf("Wrong text\n  expected: '%s'\n       got: '%s'", tt.text, text)
 			}
 		})

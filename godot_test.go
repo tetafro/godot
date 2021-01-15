@@ -11,7 +11,7 @@ import (
 )
 
 // testExclude is a test regexp to exclude lines that starts with @ symbol.
-const testExclude = "^ ?@"
+var testExclude = []string{"^ ?@"}
 
 func TestRun(t *testing.T) {
 	testFile := filepath.Join("testdata", "check", "main.go")
@@ -24,7 +24,7 @@ func TestRun(t *testing.T) {
 	// Test invalid regexp
 	_, err = Run(f, fset, Settings{
 		Scope:   DeclScope,
-		Exclude: "[",
+		Exclude: []string{"["},
 		Period:  true,
 		Capital: true,
 	})

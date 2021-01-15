@@ -48,9 +48,9 @@ func Run(file *ast.File, fset *token.FileSet, settings Settings) ([]Issue, error
 		return nil, fmt.Errorf("parse input file: %v", err)
 	}
 
-	var exclude *regexp.Regexp
-	if settings.Exclude != "" {
-		exclude, err = regexp.Compile(settings.Exclude)
+	exclude := make([]*regexp.Regexp, len(settings.Exclude))
+	for i := 0; i < len(settings.Exclude); i++ {
+		exclude[i], err = regexp.Compile(settings.Exclude[i])
 		if err != nil {
 			return nil, fmt.Errorf("invalid regexp: %v", err)
 		}
