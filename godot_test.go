@@ -14,15 +14,42 @@ import (
 var testExclude = []string{"^ ?@"}
 
 func TestRun(t *testing.T) {
+	t.Run("empty input", func(t *testing.T) {
+		issues, err := Run(nil, nil, Settings{})
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		if len(issues) > 0 {
+			t.Fatal("Unexpected issues")
+		}
+	})
+
+	t.Run("no comments", func(t *testing.T) {
+		testFile := filepath.Join("testdata", "nocomments", "main.go")
+		fset := token.NewFileSet()
+		f, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
+		if err != nil {
+			t.Fatalf("Failed to parse input file: %v", err)
+		}
+
+		issues, err := Run(f, fset, Settings{})
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		if len(issues) > 0 {
+			t.Fatal("Unexpected issues")
+		}
+	})
+
 	testFile := filepath.Join("testdata", "check", "main.go")
 	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
+	file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
 	if err != nil {
 		t.Fatalf("Failed to parse input file: %v", err)
 	}
 
 	// Test invalid regexp
-	_, err = Run(f, fset, Settings{
+	_, err = Run(file, fset, Settings{
 		Scope:   DeclScope,
 		Exclude: []string{"["},
 		Period:  true,
@@ -67,7 +94,7 @@ func TestRun(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			var expected int
-			for _, c := range f.Comments {
+			for _, c := range file.Comments {
 				if strings.Contains(c.Text(), "[PASS]") {
 					continue
 				}
@@ -77,7 +104,7 @@ func TestRun(t *testing.T) {
 					}
 				}
 			}
-			issues, err := Run(f, fset, Settings{
+			issues, err := Run(file, fset, Settings{
 				Scope:   tt.scope,
 				Exclude: testExclude,
 				Period:  true,
@@ -95,6 +122,45 @@ func TestRun(t *testing.T) {
 }
 
 func TestFix(t *testing.T) {
+	t.Run("file not found", func(t *testing.T) {
+		testFile := filepath.Join("testdata", "not-exists.go")
+		_, err := Fix(testFile, nil, nil, Settings{})
+		if err == nil {
+			t.Fatal("Expected error, got nil")
+		}
+	})
+
+	t.Run("empty file", func(t *testing.T) {
+		testFile := filepath.Join("testdata", "empty", "main.go")
+
+		fixed, err := Fix(testFile, nil, nil, Settings{})
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		if fixed != nil {
+			t.Fatalf("Unexpected result: %s", string(fixed))
+		}
+	})
+
+	t.Run("no comments", func(t *testing.T) {
+		testFile := filepath.Join("testdata", "nocomments", "main.go")
+		fset := token.NewFileSet()
+		f, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
+		if err != nil {
+			t.Fatalf("Failed to parse input file: %v", err)
+		}
+		content, err := ioutil.ReadFile(testFile)
+		if err != nil {
+			t.Fatalf("Failed to read input file: %v", err)
+		}
+
+		fixed, err := Fix(testFile, f, fset, Settings{})
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		assertEqualContent(t, string(content), string(fixed))
+	})
+
 	testFile := filepath.Join("testdata", "check", "main.go")
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
@@ -106,24 +172,16 @@ func TestFix(t *testing.T) {
 		t.Fatalf("Failed to read test file %s: %v", testFile, err)
 	}
 
-	t.Run("file not found", func(t *testing.T) {
-		path := filepath.Join("testdata", "not-exists.go")
-		_, err := Fix(path, nil, nil, Settings{})
-		if err == nil {
-			t.Fatal("Expected error, got nil")
-		}
+	// Test invalid regexp
+	_, err = Fix(testFile, file, fset, Settings{
+		Scope:   DeclScope,
+		Exclude: []string{"["},
+		Period:  true,
+		Capital: true,
 	})
-
-	t.Run("empty file", func(t *testing.T) {
-		path := filepath.Join("testdata", "empty.go")
-		fixed, err := Fix(path, nil, nil, Settings{})
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
-		if fixed != nil {
-			t.Fatalf("Unexpected result: %s", string(fixed))
-		}
-	})
+	if err == nil {
+		t.Fatalf("Expected error, got nil on regexp parsing")
+	}
 
 	t.Run("scope: decl", func(t *testing.T) {
 		expected := strings.ReplaceAll(string(content), "[PERIOD_DECL]", "[PERIOD_DECL].")
@@ -184,6 +242,46 @@ func TestFix(t *testing.T) {
 }
 
 func TestReplace(t *testing.T) {
+	t.Run("file not found", func(t *testing.T) {
+		path := filepath.Join("testdata", "not-exists.go")
+		err := Replace(path, nil, nil, Settings{})
+		if err == nil {
+			t.Fatal("Expected error, got nil")
+		}
+	})
+
+	t.Run("empty file", func(t *testing.T) {
+		testFile := filepath.Join("testdata", "empty", "main.go")
+
+		err := Replace(testFile, nil, nil, Settings{})
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+	})
+
+	t.Run("no comments", func(t *testing.T) {
+		testFile := filepath.Join("testdata", "nocomments", "main.go")
+		fset := token.NewFileSet()
+		f, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
+		if err != nil {
+			t.Fatalf("Failed to parse input file: %v", err)
+		}
+		content, err := ioutil.ReadFile(testFile)
+		if err != nil {
+			t.Fatalf("Failed to read input file: %v", err)
+		}
+
+		err = Replace(testFile, f, fset, Settings{})
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		fixed, err := ioutil.ReadFile(testFile)
+		if err != nil {
+			t.Fatalf("Failed to read fixed file: %v", err)
+		}
+		assertEqualContent(t, string(content), string(fixed))
+	})
+
 	testFile := filepath.Join("testdata", "check", "main.go")
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
@@ -200,13 +298,16 @@ func TestReplace(t *testing.T) {
 		t.Fatalf("Failed to read test file %s: %v", testFile, err)
 	}
 
-	t.Run("file not found", func(t *testing.T) {
-		path := filepath.Join("testdata", "not-exists.go")
-		err := Replace(path, nil, nil, Settings{})
-		if err == nil {
-			t.Fatal("Expected error, got nil")
-		}
+	// Test invalid regexp
+	err = Replace(testFile, file, fset, Settings{
+		Scope:   DeclScope,
+		Exclude: []string{"["},
+		Period:  true,
+		Capital: true,
 	})
+	if err == nil {
+		t.Fatalf("Expected error, got nil on regexp parsing")
+	}
 
 	t.Run("scope: decl", func(t *testing.T) {
 		defer func() {

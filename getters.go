@@ -1,6 +1,7 @@
 package godot
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/token"
@@ -8,6 +9,8 @@ import (
 	"regexp"
 	"strings"
 )
+
+var errEmptyInput = errors.New("empty input")
 
 // specialReplacer is a replacer for some types of special lines in comments,
 // which shouldn't be checked. For example, if comment ends with a block of
@@ -21,6 +24,10 @@ type parsedFile struct {
 }
 
 func newParsedFile(file *ast.File, fset *token.FileSet) (*parsedFile, error) {
+	if file == nil || fset == nil || len(file.Comments) == 0 {
+		return nil, errEmptyInput
+	}
+
 	pf := parsedFile{
 		fset: fset,
 		file: file,
@@ -48,10 +55,6 @@ func newParsedFile(file *ast.File, fset *token.FileSet) (*parsedFile, error) {
 
 // getComments extracts comments from a file.
 func (pf *parsedFile) getComments(scope Scope, exclude []*regexp.Regexp) []comment {
-	if len(pf.file.Comments) == 0 {
-		return nil
-	}
-
 	var comments []comment
 	decl := pf.getDeclarationComments(exclude)
 	switch scope {
