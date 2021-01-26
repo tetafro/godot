@@ -5,47 +5,55 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/tetafro/godot"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // version is the application version. It is set to the latest git tag in CI.
 var version = "master"
 
+const defaultConfigFile = "config.yaml"
+
+var defaultSettings = godot.Settings{
+	Scope:   godot.TopLevelScope,
+	Period:  true,
+	Capital: false,
+}
+
 // nolint: lll
 const usage = `Usage:
     godot [OPTION] [FILES]
 Options:
-    -c, --capital   check that sentences start with a capital letter
-    -s, --scope     set scope for check
-                    declarations - for top level declaration comments (default)
-                    toplevel     - for top level comments
-                    all          - for all comments
+    -c, --config    path to config file
     -f, --fix       fix issues, and print fixed version to stdout
+    -w, --write     fix issues, and write result to original file
     -h, --help      show this message
-    -v, --version   show version
-    -w, --write     fix issues, and write result to original file`
+    -v, --version   show version`
 
 // nolint:maligned
 type arguments struct {
-	help    bool
-	version bool
+	config  string
 	fix     bool
 	write   bool
-	scope   string
 	files   []string
-	capital bool
+	help    bool
+	version bool
 }
 
+// nolint: funlen
 func main() {
+	// Read command line arguments
 	args, err := readArgs()
 	if err != nil {
 		fatalf("Error: %v", err)
 	}
 
+	// Info messages
 	if args.help {
 		fmt.Println(usage)
 		os.Exit(0)
@@ -55,16 +63,16 @@ func main() {
 		os.Exit(0)
 	}
 
-	settings := godot.Settings{
-		Scope:   godot.Scope(args.scope),
-		Period:  true,
-		Capital: args.capital,
+	// Get settings from file or get defaults
+	settings, err := getSettings(args.config)
+	if err != nil {
+		fatalf("Error: %v", err)
 	}
 
+	// Parse files
 	var paths []string
 	var files []*ast.File
 	fset := token.NewFileSet()
-
 	for _, path := range args.files {
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			fatalf("Path '%s' does not exist", path)
@@ -79,6 +87,7 @@ func main() {
 		}
 	}
 
+	// Run linter
 	for i := range files {
 		switch {
 		case args.fix:
@@ -103,7 +112,6 @@ func main() {
 	}
 }
 
-// nolint: funlen
 func readArgs() (args arguments, err error) {
 	if len(os.Args) < 2 { // nolint: gomnd
 		return arguments{}, fmt.Errorf("not enough arguments")
@@ -131,35 +139,20 @@ func readArgs() (args arguments, err error) {
 			args.help = true
 		case "-v", "--version":
 			args.version = true
-		case "-s", "--scope":
-			// Next argument must be scope value
+		case "-c", "--config":
+			// Next argument must be config file value
 			if len(input) < i+2 {
-				return arguments{}, fmt.Errorf("empty scope")
+				return arguments{}, fmt.Errorf("empty config file")
 			}
-			arg = input[i+1]
+			args.config = input[i+1]
 			i++
-
-			switch arg {
-			case string(godot.DeclScope),
-				string(godot.TopLevelScope),
-				string(godot.AllScope):
-				args.scope = arg
-			default:
-				return arguments{}, fmt.Errorf("unknown scope '%s'", arg)
-			}
 		case "-f", "--fix":
 			args.fix = true
 		case "-w", "--write":
 			args.write = true
-		case "-c", "--capital":
-			args.capital = true
 		default:
 			return arguments{}, fmt.Errorf("unknown flag '%s'", arg)
 		}
-	}
-
-	if args.scope == "" {
-		args.scope = string(godot.DeclScope)
 	}
 
 	if !args.help && !args.version && len(args.files) == 0 {
@@ -167,6 +160,31 @@ func readArgs() (args arguments, err error) {
 	}
 
 	return args, nil
+}
+
+func getSettings(file string) (godot.Settings, error) {
+	settings := defaultSettings
+
+	if file == "" {
+		// Check default config file
+		if _, err := os.Stat(defaultConfigFile); os.IsNotExist(err) {
+			return settings, nil
+		}
+		file = defaultConfigFile
+	}
+
+	data, err := ioutil.ReadFile(file) // nolint: gosec
+	if err != nil {
+		return godot.Settings{}, fmt.Errorf(
+			"read config file %s: %v", defaultConfigFile, err,
+		)
+	}
+	if err := yaml.Unmarshal(data, &settings); err != nil {
+		return godot.Settings{}, fmt.Errorf(
+			"parse config file %s: %v", defaultConfigFile, err,
+		)
+	}
+	return settings, nil
 }
 
 func findFiles(root string) chan string {
