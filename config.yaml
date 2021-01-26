@@ -4,8 +4,10 @@
 #   all          - for all comments.
 scope: toplevel
 
-# List pf regexps for excluding particular comment lines from check.
+# List of regexps for excluding particular comment lines from check.
+# Example: exclude comments which contain numbers.
 exclude:
+  # - '[0-9]+'
 
 # Check periods at the end of sentences.
 period: true
