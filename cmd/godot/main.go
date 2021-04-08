@@ -20,7 +20,7 @@ var version = "master"
 const defaultConfigFile = "config.yaml"
 
 var defaultSettings = godot.Settings{
-	Scope:   godot.TopLevelScope,
+	Scope:   godot.DeclScope,
 	Period:  true,
 	Capital: false,
 }
