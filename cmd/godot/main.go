@@ -17,7 +17,7 @@ import (
 // version is the application version. It is set to the latest git tag in CI.
 var version = "master"
 
-const defaultConfigFile = "config.yaml"
+const defaultConfigFile = ".godot.yaml"
 
 var defaultSettings = godot.Settings{
 	Scope:   godot.DeclScope,
