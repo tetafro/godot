@@ -2,7 +2,7 @@
 #   declarations - for top level declaration comments (default);
 #   toplevel     - for top level comments;
 #   all          - for all comments.
-scope: toplevel
+scope: declarations
 
 # List of regexps for excluding particular comment lines from check.
 # Example: exclude comments which contain numbers.
