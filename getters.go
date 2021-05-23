@@ -47,7 +47,7 @@ func newParsedFile(file *ast.File, fset *token.FileSet) (*parsedFile, error) {
 	// Check consistency to avoid checking slice indexes in each function
 	lastComment := pf.file.Comments[len(pf.file.Comments)-1]
 	if p := pf.fset.Position(lastComment.End()); len(pf.lines) < p.Line {
-		return nil, fmt.Errorf("inconsistence between file and AST: %s", p.Filename)
+		return nil, fmt.Errorf("inconsistency between file and AST: %s", p.Filename)
 	}
 
 	return &pf, nil
