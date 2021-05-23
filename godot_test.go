@@ -161,6 +161,25 @@ func TestFix(t *testing.T) {
 		assertEqualContent(t, string(content), string(fixed))
 	})
 
+	t.Run("no code", func(t *testing.T) {
+		testFile := filepath.Join("testdata", "nocode", "main.go")
+		fset := token.NewFileSet()
+		f, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
+		if err != nil {
+			t.Fatalf("Failed to parse input file: %v", err)
+		}
+		content, err := ioutil.ReadFile(testFile)
+		if err != nil {
+			t.Fatalf("Failed to read input file: %v", err)
+		}
+
+		fixed, err := Fix(testFile, f, fset, Settings{})
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		assertEqualContent(t, string(content), string(fixed))
+	})
+
 	testFile := filepath.Join("testdata", "check", "main.go")
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
@@ -261,6 +280,29 @@ func TestReplace(t *testing.T) {
 
 	t.Run("no comments", func(t *testing.T) {
 		testFile := filepath.Join("testdata", "nocomments", "main.go")
+		fset := token.NewFileSet()
+		f, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
+		if err != nil {
+			t.Fatalf("Failed to parse input file: %v", err)
+		}
+		content, err := ioutil.ReadFile(testFile)
+		if err != nil {
+			t.Fatalf("Failed to read input file: %v", err)
+		}
+
+		err = Replace(testFile, f, fset, Settings{})
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		fixed, err := ioutil.ReadFile(testFile)
+		if err != nil {
+			t.Fatalf("Failed to read fixed file: %v", err)
+		}
+		assertEqualContent(t, string(content), string(fixed))
+	})
+
+	t.Run("no code", func(t *testing.T) {
+		testFile := filepath.Join("testdata", "nocode", "main.go")
 		fset := token.NewFileSet()
 		f, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
 		if err != nil {
