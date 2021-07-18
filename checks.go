@@ -18,6 +18,9 @@ var (
 	// A sentence can be inside parenthesis, and therefore ends with parenthesis.
 	lastChars = []string{".", "?", "!", ".)", "?)", "!)", specialReplacer}
 
+	// Abbreviations to exclude from capital letters check.
+	abbreviations = []string{"i.e.", "i. e.", "e.g.", "e. g."}
+
 	// Special tags in comments like "// nolint:", or "// +k8s:".
 	tags = regexp.MustCompile(`^\+?[a-z0-9]+:`)
 
@@ -164,6 +167,12 @@ func checkPeriod(comment string) (pos position, ok bool) {
 // NOTE: First letter is not checked in declaration comments, because they
 // can describe unexported functions, which start from small letter.
 func checkCapital(comment string, skipFirst bool) (pp []position) {
+	// Remove common abbreviations from the comment
+	for _, abbr := range abbreviations {
+		repl := strings.ReplaceAll(abbr, ".", "_")
+		comment = strings.ReplaceAll(comment, abbr, repl)
+	}
+
 	// List of states during the scan: `empty` - nothing special,
 	// `endChar` - found one of sentence ending chars (.!?),
 	// `endOfSentence` - found `endChar`, and then space or newline.

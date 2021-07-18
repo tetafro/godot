@@ -130,8 +130,11 @@ func inside() {
 
 // nonCapital is a function. non-capital-decl first letter [CAPITAL_DECL].
 func nonCapital() int {
+	// Test abbreviation (e.g. like this) [PASS].
+	x := 10
+
 	// non-capital-all [CAPITAL_ALL].
-	return 10 // non-capital-all [CAPITAL_ALL].
+	return x // non-capital-all [CAPITAL_ALL].
 }
 
 // Comment with a URL - http://example.com/[PASS]

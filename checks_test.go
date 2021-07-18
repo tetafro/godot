@@ -180,6 +180,12 @@ func TestCheckCapital(t *testing.T) {
 				{line: 1, column: 5},
 			},
 		},
+		{
+			name:      "sentence with abbreviations",
+			text:      "One two, i.e. hello, world, e.g. e. g. word",
+			skipFirst: false,
+			issues:    nil,
+		},
 	}
 
 	for _, tt := range testCases {
