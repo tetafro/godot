@@ -159,7 +159,7 @@ func checkPeriod(comment string) (pos position, ok bool) {
 	return pos, false
 }
 
-// checkCapital checks that the each sentense of the text starts with
+// checkCapital checks that each sentense of the text starts with
 // a capital letter.
 // NOTE: First letter is not checked in declaration comments, because they
 // can describe unexported functions, which start from small letter.
