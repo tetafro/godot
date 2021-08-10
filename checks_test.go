@@ -182,7 +182,7 @@ func TestCheckCapital(t *testing.T) {
 		},
 		{
 			name:      "sentence with abbreviations",
-			text:      "One two, i.e. hello, world, e.g. e. g. word",
+			text:      "One two, i.e. hello, world, e.g. e. g. word and etc. word",
 			skipFirst: false,
 			issues:    nil,
 		},
