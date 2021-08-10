@@ -19,7 +19,7 @@ var (
 	lastChars = []string{".", "?", "!", ".)", "?)", "!)", specialReplacer}
 
 	// Abbreviations to exclude from capital letters check.
-	abbreviations = []string{"i.e.", "i. e.", "e.g.", "e. g."}
+	abbreviations = []string{"i.e.", "i. e.", "e.g.", "e. g.", "etc."}
 
 	// Special tags in comments like "// nolint:", or "// +k8s:".
 	tags = regexp.MustCompile(`^\+?[a-z0-9]+:`)
