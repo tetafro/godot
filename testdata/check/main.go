@@ -107,6 +107,11 @@ func NonLatin() string {
 	return "привет, мир"
 }
 
+// Asian period [PASS]。
+func Asian() {
+	return "日本語"
+}
+
 // Comment. (Parenthesis [PASS].)
 func Parenthesis() string {
 	return "привет, мир"

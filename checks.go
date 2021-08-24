@@ -16,7 +16,7 @@ const (
 var (
 	// List of valid sentence ending.
 	// A sentence can be inside parenthesis, and therefore ends with parenthesis.
-	lastChars = []string{".", "?", "!", ".)", "?)", "!)", specialReplacer}
+	lastChars = []string{".", "?", "!", ".)", "?)", "!)", "。", "？", "！", "。）", "？）", "！）", specialReplacer}
 
 	// Abbreviations to exclude from capital letters check.
 	abbreviations = []string{"i.e.", "i. e.", "e.g.", "e. g.", "etc."}
