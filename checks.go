@@ -88,7 +88,7 @@ func checkCommentForPeriod(c comment) *Issue {
 	return &iss
 }
 
-// checkCommentForCapital checks that the each sentense of the comment starts with
+// checkCommentForCapital checks that each sentense of the comment starts with
 // a capital letter.
 // nolint: unparam
 func checkCommentForCapital(c comment) []Issue {
