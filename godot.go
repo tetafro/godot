@@ -38,7 +38,7 @@ type comment struct {
 	lines []string       // unmodified lines from file
 	text  string         // concatenated `lines` with special parts excluded
 	start token.Position // position of the first symbol in comment
-	decl  bool           // whether comment is a special one (should not be checked)
+	decl  bool           // whether comment is a declaration comment
 }
 
 // Run runs this linter on the provided code.

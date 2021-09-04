@@ -165,7 +165,7 @@ func TestCheckCapital(t *testing.T) {
 			},
 		},
 		{
-			name:      "multiple sentences with mixed cases",
+			name:      "multiple sentences with cyrillic letters",
 			text:      "Кириллица? кириллица!",
 			skipFirst: false,
 			issues: []position{
