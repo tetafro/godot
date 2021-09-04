@@ -27,8 +27,8 @@ type Issue struct {
 
 // position is a position inside a comment (might be multiline comment).
 type position struct {
-	line   int
-	column int
+	line   int // starts at 1
+	column int // starts at 1, byte count
 }
 
 // comment is an internal representation of AST comment entity with additional

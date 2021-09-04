@@ -82,7 +82,7 @@ func TestCheckPeriod(t *testing.T) {
 		{
 			name:  "cyrillic, without period",
 			text:  "Кириллица",
-			issue: position{line: 1, column: 10},
+			issue: position{line: 1, column: 19},
 		},
 		{
 			name: "parenthesis, with period",
@@ -169,7 +169,7 @@ func TestCheckCapital(t *testing.T) {
 			text:      "Кириллица? кириллица!",
 			skipFirst: false,
 			issues: []position{
-				{line: 1, column: 12},
+				{line: 1, column: 21},
 			},
 		},
 		{
@@ -391,6 +391,80 @@ func TestHasSuffix(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if hasSuffix(tt.text, tt.suffixes) != tt.result {
 				t.Fatalf("Wrong result")
+			}
+		})
+	}
+}
+
+func TestByteToRuneColumn(t *testing.T) {
+	testCases := []struct {
+		name  string
+		str   string
+		index int
+		out   int
+	}{
+		{
+			name:  "ascii symbols",
+			str:   "hello, world",
+			index: 5,
+			out:   5,
+		},
+		{
+			name:  "cyrillic symbols at the end",
+			str:   "hello, мир",
+			index: 5,
+			out:   5,
+		},
+		{
+			name:  "cyrillic symbols at the beginning",
+			str:   "привет, world",
+			index: 15,
+			out:   9,
+		},
+	}
+
+	for _, tt := range testCases {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			if out := byteToRuneColumn(tt.str, tt.index); out != tt.out {
+				t.Fatalf("Wrong column\n  expected: %d\n       got: %d", tt.out, out)
+			}
+		})
+	}
+}
+
+func TestRuneToByteColumn(t *testing.T) {
+	testCases := []struct {
+		name  string
+		str   string
+		index int
+		out   int
+	}{
+		{
+			name:  "ascii symbols",
+			str:   "hello, world",
+			index: 5,
+			out:   5,
+		},
+		{
+			name:  "cyrillic symbols at the end",
+			str:   "hello, мир",
+			index: 5,
+			out:   5,
+		},
+		{
+			name:  "cyrillic symbols at the beginning",
+			str:   "привет, world",
+			index: 9,
+			out:   15,
+		},
+	}
+
+	for _, tt := range testCases {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			if out := runeToByteColumn(tt.str, tt.index); out != tt.out {
+				t.Fatalf("Wrong column\n  expected: %d\n       got: %d", tt.out, out)
 			}
 		})
 	}

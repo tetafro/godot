@@ -77,9 +77,9 @@ func checkCommentForPeriod(c comment) *Issue {
 	// Make a replacement. Use `pos.line` to get an original line from
 	// attached lines. Use `iss.Pos.Column` because it's a position in
 	// the original line.
-	original := []rune(c.lines[pos.line-1])
-	iss.Replacement = string(original[:iss.Pos.Column-1]) + "." +
-		string(original[iss.Pos.Column-1:])
+	original := c.lines[pos.line-1]
+	iss.Replacement = original[:iss.Pos.Column-1] + "." +
+		original[iss.Pos.Column-1:]
 
 	// Save replacement to raw lines to be able to combine it with
 	// further replacements
@@ -118,9 +118,11 @@ func checkCommentForCapital(c comment) []Issue {
 		// Make a replacement. Use `pos.line` to get an original line from
 		// attached lines. Use `iss.Pos.Column` because it's a position in
 		// the original line.
-		rep := []rune(c.lines[pos.line-1])
-		rep[iss.Pos.Column-1] = unicode.ToTitle(rep[iss.Pos.Column-1])
-		iss.Replacement = string(rep)
+		line := c.lines[pos.line-1]
+		col := byteToRuneColumn(line, iss.Pos.Column) - 1
+		rep := string(unicode.ToTitle([]rune(line)[col])) // capital letter
+		iss.Replacement = line[:iss.Pos.Column-1] + rep +
+			line[iss.Pos.Column-1+len(rep):]
 
 		// Save replacement to raw lines to be able to combine it with
 		// further replacements
@@ -158,7 +160,7 @@ func checkPeriod(comment string) (pos position, ok bool) {
 		return position{}, true
 	}
 
-	pos.column = len([]rune(line)) + 1
+	pos.column = len(line) + 1
 	return pos, false
 }
 
@@ -209,7 +211,10 @@ func checkCapital(comment string, skipFirst bool) (pp []position) {
 			continue
 		}
 		if state == endOfSentence && unicode.IsLower(r) {
-			pp = append(pp, position{line: pos.line, column: pos.column})
+			pp = append(pp, position{
+				line:   pos.line,
+				column: runeToByteColumn(comment, pos.column),
+			})
 		}
 		state = empty
 	}
@@ -266,4 +271,23 @@ func hasSuffix(s string, suffixes []string) bool {
 		}
 	}
 	return false
+}
+
+// The following two functions convert byte and rune indexes.
+//
+// Example:
+//   text:  a b c Ш e f
+//   runes: 1 2 3 4 5 6
+//   bytes: 0 1 2 3 5 6
+// The reason of the difference is that the size of "Ш" is 2 bytes.
+// NOTE: Works only for 1-based indexes (line columns).
+
+// byteToRuneColumn converts byte index inside the string to rune index.
+func byteToRuneColumn(s string, i int) int {
+	return len([]rune(s[:i-1])) + 1
+}
+
+// runeToByteColumn converts rune index inside the string to byte index.
+func runeToByteColumn(s string, i int) int {
+	return len(string([]rune(s)[:i-1])) + 1
 }
