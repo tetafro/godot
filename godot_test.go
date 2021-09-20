@@ -443,7 +443,7 @@ func assertEqualContent(t *testing.T, expected, content string) {
 		exp := strings.TrimRight(expectedLines[i], "\r")
 		if result != exp {
 			t.Fatalf("Wrong line %d\n  expected: '%s'\n       got: '%s'",
-				i, exp, result)
+				i+1, exp, result)
 		}
 	}
 }
