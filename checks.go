@@ -58,18 +58,20 @@ func checkCommentForPeriod(c comment) *Issue {
 		return nil
 	}
 
-	// Shift position by the length of comment's special symbols: /* or //
-	isBlock := strings.HasPrefix(c.lines[0], "/*")
-	if (isBlock && pos.line == 1) || !isBlock {
-		pos.column += 2
-	}
+	// Shift position to its real value. `c.text` doesn't contain comment's
+	// special symbols: /* or //, and line indentations inside. It also
+	// contains */ in the end in case of block comment.
+	pos.column += strings.Index(
+		c.lines[pos.line-1],
+		strings.Split(c.text, "\n")[pos.line-1],
+	)
 
 	iss := Issue{
 		Pos: token.Position{
 			Filename: c.start.Filename,
 			Offset:   c.start.Offset,
 			Line:     pos.line + c.start.Line - 1,
-			Column:   pos.column + c.start.Column - 1,
+			Column:   pos.column,
 		},
 		Message: noPeriodMessage,
 	}

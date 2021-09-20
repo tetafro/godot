@@ -46,6 +46,19 @@ Multiline comment with a period [PASS].
 
 // Single-line comment with a period [PASS].
 
+// Mixed block of comments,
+/*
+period must be here [PERIOD_TOP]
+*/
+
+/* Mixed block of comments,
+*/
+// period must be here [PERIOD_TOP]
+
+/*
+// Comment inside comment [PERIOD_TOP]
+*/
+
 // Block comment [PERIOD_DECL]
 const (
 	// Inside comment [PERIOD_DECL]
@@ -104,6 +117,7 @@ func CgoExportedFunction(a, b int) int {
 
 // Кириллица [PERIOD_DECL]
 func NonLatin() string {
+	// Тест: Mixed ASCII and non-ASCII chars.
 	return "привет, мир"
 }
 
