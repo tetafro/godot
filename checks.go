@@ -80,6 +80,10 @@ func checkCommentForPeriod(c comment) *Issue {
 	// attached lines. Use `iss.Pos.Column` because it's a position in
 	// the original line.
 	original := c.lines[pos.line-1]
+	if len(original) < iss.Pos.Column-1 {
+		// This should never happen. Avoid panics, skip this check.
+		return nil
+	}
 	iss.Replacement = original[:iss.Pos.Column-1] + "." +
 		original[iss.Pos.Column-1:]
 
@@ -117,14 +121,18 @@ func checkCommentForCapital(c comment) []Issue {
 			Message: noCapitalMessage,
 		}
 
-		// Make a replacement. Use `pos.line` to get an original line from
+		// Make a replacement. Use `pos.original` to get an original original from
 		// attached lines. Use `iss.Pos.Column` because it's a position in
-		// the original line.
-		line := c.lines[pos.line-1]
-		col := byteToRuneColumn(line, iss.Pos.Column) - 1
-		rep := string(unicode.ToTitle([]rune(line)[col])) // capital letter
-		iss.Replacement = line[:iss.Pos.Column-1] + rep +
-			line[iss.Pos.Column-1+len(rep):]
+		// the original original.
+		original := c.lines[pos.line-1]
+		col := byteToRuneColumn(original, iss.Pos.Column) - 1
+		rep := string(unicode.ToTitle([]rune(original)[col])) // capital letter
+		if len(original) < iss.Pos.Column-1+len(rep) {
+			// This should never happen. Avoid panics, skip this check.
+			continue
+		}
+		iss.Replacement = original[:iss.Pos.Column-1] + rep +
+			original[iss.Pos.Column-1+len(rep):]
 
 		// Save replacement to raw lines to be able to combine it with
 		// further replacements
