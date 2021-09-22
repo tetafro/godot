@@ -21,6 +21,10 @@ end of the last sentence if needed.
 Build from source
 
 ```sh
+# Go 1.16+
+go install github.com/tetafro/godot/cmd/godot@v1.4.11
+
+# Go version < 1.16
 go get -u github.com/tetafro/godot/cmd/godot
 ```
 
