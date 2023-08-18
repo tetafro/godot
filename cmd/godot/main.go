@@ -5,7 +5,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -173,7 +172,7 @@ func getSettings(file string) (godot.Settings, error) {
 		file = defaultConfigFile
 	}
 
-	data, err := ioutil.ReadFile(file) // nolint: gosec
+	data, err := os.ReadFile(file) // nolint: gosec
 	if err != nil {
 		return godot.Settings{}, fmt.Errorf(
 			"read config file %s: %v", defaultConfigFile, err,
