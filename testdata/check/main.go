@@ -92,6 +92,11 @@ type Message struct {
 	Type string
 }
 
+// Generic type [PASS].
+type Array[T int64 | float64] struct {
+	Elements []T
+}
+
 // Declaration multiline comment
 // second line
 // third line with a period [PASS].
