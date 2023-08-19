@@ -1,9 +1,8 @@
-# Run on any tag
+name: Release a tag
+
 on:
   push:
     tags: ['*']
-
-name: Release a tag
 
 jobs:
   test:
