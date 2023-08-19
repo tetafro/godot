@@ -241,7 +241,7 @@ func getText(comment *ast.CommentGroup, exclude []*regexp.Regexp) (s string) {
 	return s[:len(s)-1] // trim last "\n"
 }
 
-// readFile reads file and returns it's lines as strings.
+// readFile reads file and returns its lines as strings.
 func readFile(file *ast.File, fset *token.FileSet) ([]string, error) {
 	fname := fset.File(file.Package)
 	f, err := os.ReadFile(fname.Name())
