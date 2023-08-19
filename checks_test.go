@@ -248,6 +248,11 @@ func TestIsSpecialBlock(t *testing.T) {
 			*/`,
 			isSpecial: true,
 		},
+		{
+			name:      "Test output",
+			comment:   "// Output: true",
+			isSpecial: true,
+		},
 	}
 
 	for _, tt := range testCases {
