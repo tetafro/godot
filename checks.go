@@ -31,6 +31,12 @@ var (
 	endURL = regexp.MustCompile(`[a-z]+://[^\s]+$`)
 )
 
+// position is a position inside a comment (might be multiline comment).
+type position struct {
+	line   int // starts at 1
+	column int // starts at 1, byte count
+}
+
 // checkComments checks every comment accordings to the rules from
 // `settings` argument.
 func checkComments(comments []comment, settings Settings) []Issue {
