@@ -1,3 +1,5 @@
+// godot is a linter that checks if all top-level comments contain a
+// period at the end of the last sentence if needed.
 package main
 
 import (
@@ -24,7 +26,6 @@ var defaultSettings = godot.Settings{
 	Capital: false,
 }
 
-// nolint: lll
 const usage = `Usage:
     godot [OPTION] [FILES]
 Options:
@@ -34,7 +35,7 @@ Options:
     -h, --help      show this message
     -v, --version   show version`
 
-// nolint:maligned
+//nolint:maligned
 type arguments struct {
 	config  string
 	fix     bool
@@ -44,7 +45,7 @@ type arguments struct {
 	version bool
 }
 
-// nolint: funlen
+//nolint:funlen
 func main() {
 	// Read command line arguments
 	args, err := readArgs()
@@ -112,7 +113,7 @@ func main() {
 }
 
 func readArgs() (args arguments, err error) {
-	if len(os.Args) < 2 { // nolint: gomnd
+	if len(os.Args) < 2 { //nolint:gomnd
 		return arguments{}, fmt.Errorf("not enough arguments")
 	}
 
@@ -120,7 +121,7 @@ func readArgs() (args arguments, err error) {
 	input := make([]string, 0, len(os.Args)-1)
 	for i := 1; i < len(os.Args); i++ {
 		splitted := strings.Split(os.Args[i], "=")
-		if len(splitted) > 2 { // nolint: gomnd
+		if len(splitted) > 2 { //nolint:gomnd
 			return arguments{}, fmt.Errorf("invalid argument '%s'", os.Args[i])
 		}
 		input = append(input, splitted...)
@@ -172,15 +173,15 @@ func getSettings(file string) (godot.Settings, error) {
 		file = defaultConfigFile
 	}
 
-	data, err := os.ReadFile(file) // nolint: gosec
+	data, err := os.ReadFile(file) //nolint:gosec
 	if err != nil {
 		return godot.Settings{}, fmt.Errorf(
-			"read config file %s: %v", defaultConfigFile, err,
+			"read config file %s: %w", defaultConfigFile, err,
 		)
 	}
 	if err := yaml.Unmarshal(data, &settings); err != nil {
 		return godot.Settings{}, fmt.Errorf(
-			"parse config file %s: %v", defaultConfigFile, err,
+			"parse config file %s: %w", defaultConfigFile, err,
 		)
 	}
 	return settings, nil

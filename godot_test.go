@@ -185,7 +185,7 @@ func TestFix(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to parse file %s: %v", testFile, err)
 	}
-	content, err := os.ReadFile(testFile) // nolint: gosec
+	content, err := os.ReadFile(testFile)
 	if err != nil {
 		t.Fatalf("Failed to read test file %s: %v", testFile, err)
 	}
@@ -334,7 +334,7 @@ func TestReplace(t *testing.T) {
 		t.Fatalf("Failed to check test file %s: %v", testFile, err)
 	}
 	mode := info.Mode()
-	content, err := os.ReadFile(testFile) // nolint: gosec
+	content, err := os.ReadFile(testFile)
 	if err != nil {
 		t.Fatalf("Failed to read test file %s: %v", testFile, err)
 	}
@@ -352,7 +352,7 @@ func TestReplace(t *testing.T) {
 
 	t.Run("scope: decl", func(t *testing.T) {
 		defer func() {
-			os.WriteFile(testFile, content, mode) // nolint: errcheck,gosec
+			os.WriteFile(testFile, content, mode)
 		}()
 		expected := strings.ReplaceAll(string(content), "[PERIOD_DECL]", "[PERIOD_DECL].")
 		expected = strings.ReplaceAll(expected, "non-capital-decl", "Non-capital-decl")
@@ -366,7 +366,7 @@ func TestReplace(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
-		fixed, err := os.ReadFile(testFile) // nolint: gosec
+		fixed, err := os.ReadFile(testFile)
 		if err != nil {
 			t.Fatalf("Failed to read fixed file %s: %v", testFile, err)
 		}
@@ -376,7 +376,7 @@ func TestReplace(t *testing.T) {
 
 	t.Run("scope: top", func(t *testing.T) {
 		defer func() {
-			os.WriteFile(testFile, content, mode) // nolint: errcheck,gosec
+			os.WriteFile(testFile, content, mode)
 		}()
 		expected := strings.ReplaceAll(string(content), "[PERIOD_DECL]", "[PERIOD_DECL].")
 		expected = strings.ReplaceAll(expected, "[PERIOD_TOP]", "[PERIOD_TOP].")
@@ -392,7 +392,7 @@ func TestReplace(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
-		fixed, err := os.ReadFile(testFile) // nolint: gosec
+		fixed, err := os.ReadFile(testFile)
 		if err != nil {
 			t.Fatalf("Failed to read fixed file %s: %v", testFile, err)
 		}
@@ -402,7 +402,7 @@ func TestReplace(t *testing.T) {
 
 	t.Run("scope: all", func(t *testing.T) {
 		defer func() {
-			os.WriteFile(testFile, content, mode) // nolint: errcheck,gosec
+			os.WriteFile(testFile, content, mode)
 		}()
 		expected := strings.ReplaceAll(string(content), "[PERIOD_DECL]", "[PERIOD_DECL].")
 		expected = strings.ReplaceAll(expected, "[PERIOD_TOP]", "[PERIOD_TOP].")
@@ -420,7 +420,7 @@ func TestReplace(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
-		fixed, err := os.ReadFile(testFile) // nolint: gosec
+		fixed, err := os.ReadFile(testFile)
 		if err != nil {
 			t.Fatalf("Failed to read fixed file %s: %v", testFile, err)
 		}

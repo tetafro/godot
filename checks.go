@@ -21,7 +21,7 @@ var (
 	// Abbreviations to exclude from capital letters check.
 	abbreviations = []string{"i.e.", "i. e.", "e.g.", "e. g.", "etc."}
 
-	// Special tags in comments like "// nolint:", or "// +k8s:".
+	// Special tags in comments like "//nolint:", or "//+k8s:".
 	tags = regexp.MustCompile(`^\+?[a-z0-9]+:`)
 
 	// Special hashtags in comments like "// #nosec".
@@ -40,7 +40,7 @@ type position struct {
 // checkComments checks every comment accordings to the rules from
 // `settings` argument.
 func checkComments(comments []comment, settings Settings) []Issue {
-	var issues []Issue // nolint: prealloc
+	var issues []Issue
 	for _, c := range comments {
 		if settings.Period {
 			if iss := checkCommentForPeriod(c); iss != nil {

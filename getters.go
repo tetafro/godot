@@ -44,7 +44,7 @@ func newParsedFile(file *ast.File, fset *token.FileSet) (*parsedFile, error) {
 	// from "go/format" won't help here if the original file is not gofmt-ed.
 	pf.lines, err = readFile(file, fset)
 	if err != nil {
-		return nil, fmt.Errorf("read file: %v", err)
+		return nil, fmt.Errorf("read file: %w", err)
 	}
 
 	// Dirty hack. For some cases Go generates temporary files during
@@ -82,7 +82,7 @@ func (pf *parsedFile) getComments(scope Scope, exclude []*regexp.Regexp) []comme
 			pf.getBlockComments(exclude),
 			pf.getTopLevelComments(exclude)...,
 		)
-	default:
+	case DeclScope:
 		// Top level declaration comments and comments from the inside
 		// of top level blocks
 		comments = append(pf.getBlockComments(exclude), decl...)
@@ -118,7 +118,7 @@ func (pf *parsedFile) getBlockComments(exclude []*regexp.Regexp) []comment {
 			// Skip comments that are not top-level for this block
 			// (the block itself is top level, so comments inside this block
 			// would be on column 2)
-			// nolint: gomnd
+			//nolint:gomnd
 			if pf.fset.Position(c.Pos()).Column != 2 {
 				continue
 			}
@@ -136,7 +136,7 @@ func (pf *parsedFile) getBlockComments(exclude []*regexp.Regexp) []comment {
 
 // getTopLevelComments gets all top level comments.
 func (pf *parsedFile) getTopLevelComments(exclude []*regexp.Regexp) []comment {
-	var comments []comment // nolint: prealloc
+	var comments []comment //nolint:prealloc
 	for _, c := range pf.file.Comments {
 		if c == nil || len(c.List) == 0 {
 			continue
@@ -157,7 +157,7 @@ func (pf *parsedFile) getTopLevelComments(exclude []*regexp.Regexp) []comment {
 
 // getDeclarationComments gets top level declaration comments.
 func (pf *parsedFile) getDeclarationComments(exclude []*regexp.Regexp) []comment {
-	var comments []comment // nolint: prealloc
+	var comments []comment //nolint:prealloc
 	for _, decl := range pf.file.Decls {
 		var cg *ast.CommentGroup
 		switch d := decl.(type) {
@@ -184,7 +184,7 @@ func (pf *parsedFile) getDeclarationComments(exclude []*regexp.Regexp) []comment
 
 // getAllComments gets every single comment from the file.
 func (pf *parsedFile) getAllComments(exclude []*regexp.Regexp) []comment {
-	var comments []comment //nolint: prealloc
+	var comments []comment //nolint:prealloc
 	for _, c := range pf.file.Comments {
 		if c == nil || len(c.List) == 0 {
 			continue
@@ -205,6 +205,8 @@ func (pf *parsedFile) getAllComments(exclude []*regexp.Regexp) []comment {
 // special lines (e.g., tags or indented code examples), they are replaced
 // with `specialReplacer` to skip checks for them.
 // The result can be multiline.
+//
+//nolint:cyclop
 func getText(comment *ast.CommentGroup, exclude []*regexp.Regexp) (s string) {
 	if len(comment.List) == 1 &&
 		strings.HasPrefix(comment.List[0].Text, "/*") &&
@@ -246,7 +248,7 @@ func readFile(file *ast.File, fset *token.FileSet) ([]string, error) {
 	fname := fset.File(file.Package)
 	f, err := os.ReadFile(fname.Name())
 	if err != nil {
-		return nil, err
+		return nil, err //nolint:wrapcheck
 	}
 	return strings.Split(string(f), "\n"), nil
 }

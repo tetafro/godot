@@ -1,6 +1,7 @@
 package godot
 
 import (
+	"errors"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -82,7 +83,7 @@ func TestGetComments(t *testing.T) {
 		if pf != nil {
 			t.Fatalf("Unexpected file content")
 		}
-		if err != errUnsuitableInput {
+		if !errors.Is(err, errUnsuitableInput) {
 			t.Fatalf(
 				"Unexpected error:\n  expected: %v\n       got: %v",
 				errUnsuitableInput, err,
