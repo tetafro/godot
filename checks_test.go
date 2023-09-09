@@ -1,209 +1,380 @@
 package godot
 
-import "testing"
+import (
+	"go/token"
+	"testing"
+)
 
 func TestCheckPeriod(t *testing.T) {
+	start := token.Position{
+		Filename: "filename.go",
+		Offset:   0,
+		Line:     1,
+		Column:   1,
+	}
+
 	testCases := []struct {
-		name  string
-		text  string
-		ok    bool
-		issue position
+		name    string
+		comment comment
+		issue   *Issue
 	}{
 		{
 			name: "singleline text with period",
-			text: "Hello, world.",
-			ok:   true,
+			comment: comment{
+				lines: []string{"//Hello, world."},
+				text:  "Hello, world.",
+				start: start,
+			},
+			issue: nil,
 		},
 		{
 			name: "singleline text with period and indentation",
-			text: " Hello, world.",
-			ok:   true,
+			comment: comment{
+				lines: []string{"//   Hello, world."},
+				text:  "   Hello, world.",
+				start: start,
+			},
+			issue: nil,
 		},
 		{
-			name: "multiple text with period",
-			text: "Hello,\nworld.",
-			ok:   true,
+			name: "multiline text with period",
+			comment: comment{
+				lines: []string{"// Hello,", "// world."},
+				text:  " Hello,\n world.",
+				start: start,
+			},
+			issue: nil,
 		},
 		{
-			name: "multiple text with period and empty lines",
-			text: "\nHello, world.\n",
-			ok:   true,
+			name: "multiline text with period and empty lines",
+			comment: comment{
+				lines: []string{"/*", "Hello, world.", "*/"},
+				text:  "\nHello, world.\n",
+			},
+			issue: nil,
 		},
 		{
-			name:  "singleline text with no period",
-			text:  "Hello, world",
-			issue: position{line: 1, column: 13},
+			name: "singleline text with no period",
+			comment: comment{
+				lines: []string{"// Hello, world"},
+				text:  " Hello, world",
+				start: start,
+			},
+			issue: &Issue{
+				Pos: token.Position{
+					Filename: start.Filename,
+					Line:     1,
+					Column:   16,
+				},
+				Message:     noPeriodMessage,
+				Replacement: "// Hello, world.",
+			},
 		},
 		{
-			name:  "multiple text with no period",
-			text:  "\nHello,\nworld\n",
-			issue: position{line: 3, column: 6},
+			name: "multiple text with no period",
+			comment: comment{
+				lines: []string{"/*", "Hello,", "world", "*/"},
+				text:  "\nHello,\nworld\n",
+				start: start,
+			},
+			issue: &Issue{
+				Pos: token.Position{
+					Filename: start.Filename,
+					Line:     3,
+					Column:   6,
+				},
+				Message:     noPeriodMessage,
+				Replacement: "world.",
+			},
 		},
 		{
 			name: "question mark",
-			text: "Hello, world?",
-			ok:   true,
+			comment: comment{
+				lines: []string{"// Hello, world?"},
+				text:  " Hello, world?",
+				start: start,
+			},
+			issue: nil,
 		},
 		{
 			name: "exclamation mark",
-			text: "Hello, world!",
-			ok:   true,
+			comment: comment{
+				lines: []string{"// Hello, world!"},
+				text:  " Hello, world!",
+				start: start,
+			},
+			issue: nil,
 		},
 		{
 			name: "empty line",
-			text: "",
-			ok:   true,
+			comment: comment{
+				lines: []string{"//"},
+				text:  "",
+				start: start,
+			},
+			issue: nil,
 		},
 		{
 			name: "empty lines",
-			text: "\n\n",
-			ok:   true,
+			comment: comment{
+				lines: []string{"/*", "", "", "*/"},
+				text:  "\n\n",
+				start: start,
+			},
+			issue: nil,
 		},
 		{
 			name: "only spaces",
-			text: "   ",
-			ok:   true,
+			comment: comment{
+				lines: []string{"//   "},
+				text:  "   ",
+				start: start,
+			},
+			issue: nil,
 		},
 		{
 			name: "mixed spaces",
-			text: "\t\t  ",
-			ok:   true,
+			comment: comment{
+				lines: []string{"//\t\t  "},
+				text:  "\t\t  ",
+				start: start,
+			},
+			issue: nil,
 		},
 		{
 			name: "mixed spaces and newlines",
-			text: " \t\t \n\n\n  \n\t  ",
-			ok:   true,
+			comment: comment{
+				lines: []string{"// \t\t \n\n\n  \n\t  "},
+				text:  " \t\t \n\n\n  \n\t  ",
+				start: start,
+			},
+			issue: nil,
 		},
 		{
 			name: "cyrillic, with period",
-			text: "Кириллица.",
-			ok:   true,
+			comment: comment{
+				lines: []string{"// Кириллица."},
+				text:  " Кириллица.",
+				start: start,
+			},
+			issue: nil,
 		},
 		{
-			name:  "cyrillic, without period",
-			text:  "Кириллица",
-			issue: position{line: 1, column: 19},
+			name: "cyrillic, without period",
+			comment: comment{
+				lines: []string{"// Кириллица"},
+				text:  " Кириллица",
+				start: start,
+			},
+			issue: &Issue{
+				Pos: token.Position{
+					Filename: "filename.go",
+					Offset:   0,
+					Line:     1,
+					Column:   22,
+				},
+				Message:     "Comment should end in a period",
+				Replacement: "// Кириллица.",
+			},
 		},
 		{
 			name: "parenthesis, with period",
-			text: "Hello. (World.)",
-			ok:   true,
+			comment: comment{
+				lines: []string{"// Hello. (World.)"},
+				text:  " Hello. (World.)",
+				start: start,
+			},
+			issue: nil,
 		},
 		{
-			name:  "parenthesis, without period",
-			text:  "Hello. (World)",
-			issue: position{line: 1, column: 15},
+			name: "parenthesis, without period",
+			comment: comment{
+				lines: []string{"// Hello. (World)"},
+				text:  " Hello. (World)",
+				start: start,
+			},
+			issue: &Issue{
+				Pos: token.Position{
+					Filename: "filename.go",
+					Offset:   0,
+					Line:     1,
+					Column:   18,
+				},
+				Message:     "Comment should end in a period",
+				Replacement: "// Hello. (World).",
+			},
 		},
 		{
 			name: "single closing parenthesis with period",
-			text: ").",
-			ok:   true,
+			comment: comment{
+				lines: []string{"//)."},
+				text:  ").",
+				start: start,
+			},
+			issue: nil,
 		},
 		{
-			name:  "single closing parenthesis without period",
-			text:  ")",
-			issue: position{line: 1, column: 2},
+			name: "single closing parenthesis without period",
+			comment: comment{
+				lines: []string{"//)"},
+				text:  ")",
+				start: start,
+			},
+			issue: &Issue{
+				Pos: token.Position{
+					Filename: "filename.go",
+					Offset:   0,
+					Line:     1,
+					Column:   4,
+				},
+				Message:     "Comment should end in a period",
+				Replacement: "//).",
+			},
 		},
 	}
 
 	for _, tt := range testCases {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			pos, ok := checkPeriod(tt.text)
-			if ok != tt.ok {
-				t.Fatalf("Wrong result\n  expected: %v\n       got: %v", tt.ok, ok)
-			}
-			if pos.line != tt.issue.line {
-				t.Fatalf("Wrong line\n  expected: %d\n       got: %d", tt.issue.line, pos.line)
-			}
-			if pos.column != tt.issue.column {
-				t.Fatalf("Wrong column\n  expected: %d\n       got: %d", tt.issue.column, pos.column)
+			issue := checkPeriod(tt.comment)
+			switch {
+			case tt.issue == nil && issue == nil:
+				return
+			case tt.issue == nil && issue != nil:
+				t.Fatalf("Unexpected issue")
+			case tt.issue != nil && issue == nil:
+				t.Fatalf("Expected issue, got nil")
+			case issue.Pos != tt.issue.Pos:
+				t.Fatalf("Wrong position\n  expected: %+v\n       got: %+v",
+					tt.issue.Pos, issue.Pos)
+			case issue.Message != tt.issue.Message:
+				t.Fatalf("Wrong message\n  expected: %s\n       got: %s",
+					tt.issue.Message, issue.Message)
+			case issue.Replacement != tt.issue.Replacement:
+				t.Fatalf("Wrong replacement\n  expected: %s\n       got: %s",
+					tt.issue.Replacement, issue.Replacement)
 			}
 		})
 	}
 }
 
 func TestCheckCapital(t *testing.T) {
+	start := token.Position{
+		Filename: "filename.go",
+		Offset:   0,
+		Line:     1,
+		Column:   1,
+	}
+
 	testCases := []struct {
-		name      string
-		text      string
-		skipFirst bool
-		issues    []position
+		name    string
+		comment comment
+		issues  []Issue
 	}{
 		{
-			name:      "single sentence starting with a capital letter",
-			text:      "Hello, world.",
-			skipFirst: false,
-		},
-		{
-			name:      "single sentence starting with a lowercase letter",
-			text:      "hello, world.",
-			skipFirst: false,
-			issues: []position{
-				{line: 1, column: 1},
+			name: "single sentence starting with a capital letter",
+			comment: comment{
+				lines: []string{"//Hello, world."},
+				text:  "Hello, world.",
+				start: start,
 			},
 		},
 		{
-			name:      "multiple sentences with mixed cases",
-			text:      "hello, world. Hello, world. hello? hello!\n\nhello, world.",
-			skipFirst: false,
-			issues: []position{
-				{line: 1, column: 1},
-				{line: 1, column: 29},
-				{line: 1, column: 36},
-				{line: 3, column: 1},
+			name: "single sentence starting with a lowercase letter",
+			comment: comment{
+				lines: []string{"// hello, world."},
+				text:  " hello, world.",
+				start: start,
+			},
+			issues: []Issue{
+				{Pos: token.Position{Line: 1, Column: 4}},
 			},
 		},
 		{
-			name:      "multiple sentences with mixed cases, first letter skipped",
-			text:      "hello, world. Hello, world. hello? hello!\n\nhello, world.",
-			skipFirst: true,
-			issues: []position{
-				{line: 1, column: 29},
-				{line: 1, column: 36},
-				{line: 3, column: 1},
+			name: "multiple sentences with mixed cases",
+			comment: comment{
+				lines: []string{
+					"/* hello, world. Hello, world. hello? hello!",
+					"",
+					"hello, world. */",
+				},
+				text:  " hello, world. Hello, world. hello? hello!\n\nhello, world. ",
+				start: start,
+			},
+			issues: []Issue{
+				{Pos: token.Position{Line: 1, Column: 4}},
+				{Pos: token.Position{Line: 1, Column: 32}},
+				{Pos: token.Position{Line: 1, Column: 39}},
+				{Pos: token.Position{Line: 3, Column: 1}},
 			},
 		},
 		{
-			name:      "multiple sentences with cyrillic letters",
-			text:      "Кириллица? кириллица!",
-			skipFirst: false,
-			issues: []position{
-				{line: 1, column: 21},
+			name: "multiple sentences with mixed cases, declaration comment",
+			comment: comment{
+				lines: []string{
+					"/* hello, world. Hello, world. hello? hello!",
+					"",
+					"hello, world. */",
+				},
+				text:  " hello, world. Hello, world. hello? hello!\n\nhello, world.",
+				start: start,
+				decl:  true,
+			},
+			issues: []Issue{
+				{Pos: token.Position{Line: 1, Column: 32}},
+				{Pos: token.Position{Line: 1, Column: 39}},
+				{Pos: token.Position{Line: 3, Column: 1}},
 			},
 		},
 		{
-			name:      "sentence with leading spaces",
-			text:      "    hello, world",
-			skipFirst: false,
-			issues: []position{
-				{line: 1, column: 5},
+			name: "multiple sentences with cyrillic letters",
+			comment: comment{
+				lines: []string{"//Кириллица? кириллица!"},
+				text:  "Кириллица? кириллица!",
+				start: start,
+			},
+			issues: []Issue{
+				{Pos: token.Position{Line: 1, Column: 23}},
 			},
 		},
 		{
-			name:      "sentence with abbreviations",
-			text:      "One two, i.e. hello, world, e.g. e. g. word and etc. word",
-			skipFirst: false,
-			issues:    nil,
+			name: "sentence with leading spaces",
+			comment: comment{
+				lines: []string{"//    hello, world"},
+				text:  "    hello, world",
+				start: start,
+			},
+			issues: []Issue{
+				{Pos: token.Position{Line: 1, Column: 7}},
+			},
+		},
+		{
+			name: "sentence with abbreviations",
+			comment: comment{
+				lines: []string{"//One two, i.e. hello, world, e.g. e. g. word and etc. word"},
+				text:  "One two, i.e. hello, world, e.g. e. g. word and etc. word",
+				start: start,
+			},
+			issues: nil,
 		},
 	}
 
 	for _, tt := range testCases {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			issues := checkCapital(tt.text, tt.skipFirst)
+			issues := checkCapital(tt.comment)
 			if len(issues) != len(tt.issues) {
 				t.Fatalf("Wrong number of issues\n  expected: %d\n       got: %d",
 					len(tt.issues), len(issues))
 			}
 			for i := range issues {
-				if issues[i].line != tt.issues[i].line {
+				if issues[i].Pos.Line != tt.issues[i].Pos.Line {
 					t.Fatalf("Wrong line\n  expected: %d\n       got: %d",
-						tt.issues[i].line, issues[i].line)
+						tt.issues[i].Pos.Line, issues[i].Pos.Line)
 				}
-				if issues[i].column != tt.issues[i].column {
+				if issues[i].Pos.Column != tt.issues[i].Pos.Column {
 					t.Fatalf("Wrong column\n  expected: %d\n       got: %d",
-						tt.issues[i].column, issues[i].column)
+						tt.issues[i].Pos.Column, issues[i].Pos.Column)
 				}
 			}
 		})
