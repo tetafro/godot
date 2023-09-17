@@ -236,7 +236,7 @@ func isSpecialBlock(comment string) bool {
 	return false
 }
 
-// isSpecialBlock checks that given comment line is special and
+// isSpecialLine checks that given comment line is special and
 // shouldn't be checked as a regular sentence.
 func isSpecialLine(comment string) bool {
 	// Skip cgo export tags: https://golang.org/cmd/cgo/#hdr-C_references_to_Go
