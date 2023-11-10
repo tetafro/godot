@@ -40,6 +40,23 @@ func TestRun(t *testing.T) {
 		}
 	})
 
+	t.Run("line directive", func(t *testing.T) {
+		testFile := filepath.Join("testdata", "line", "main.go")
+		fset := token.NewFileSet()
+		f, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
+		if err != nil {
+			t.Fatalf("Failed to parse input file: %v", err)
+		}
+
+		issues, err := Run(f, fset, Settings{})
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		if len(issues) > 0 {
+			t.Fatal("Unexpected issues")
+		}
+	})
+
 	testFile := filepath.Join("testdata", "check", "main.go")
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)

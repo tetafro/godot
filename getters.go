@@ -58,9 +58,13 @@ func newParsedFile(file *ast.File, fset *token.FileSet) (*parsedFile, error) {
 		return nil, errUnsuitableInput
 	}
 
-	// Check consistency to avoid checking slice indexes in each function
+	// Check consistency to avoid checking slice indexes in each function.
+	// Note that `PositionFor` is used with `adjusted=false` to skip `//line`
+	// directives that can set references to other files (e.g. templates)
+	// instead of the real ones, and break consistency here.
+	// Issue: https://github.com/tetafro/godot/issues/32
 	lastComment := pf.file.Comments[len(pf.file.Comments)-1]
-	if p := pf.fset.Position(lastComment.End()); len(pf.lines) < p.Line {
+	if p := pf.fset.PositionFor(lastComment.End(), false); len(pf.lines) < p.Line {
 		return nil, fmt.Errorf("inconsistency between file and AST: %s", p.Filename)
 	}
 
