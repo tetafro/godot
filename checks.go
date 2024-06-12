@@ -239,7 +239,7 @@ func isSpecialBlock(comment string) bool {
 // isSpecialLine checks that given comment line is special and
 // shouldn't be checked as a regular sentence.
 func isSpecialLine(comment string) bool {
-	// Skip cgo export tags: https://golang.org/cmd/cgo/#hdr-C_references_to_Go
+	// Skip cgo export tags: https://pkg.go.dev/cmd/cgo#hdr-C_references_to_Go
 	if strings.HasPrefix(comment, "//export ") {
 		return true
 	}
