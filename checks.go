@@ -171,7 +171,7 @@ func checkCapital(c comment) []Issue {
 		if state == endOfSentence && unicode.IsLower(r) {
 			pp = append(pp, position{
 				line:   pos.line,
-				column: runeToByteColumn(c.text, pos.column),
+				column: runeToByteColumn(c.lines[pos.line-1], pos.column),
 			})
 		}
 		state = empty

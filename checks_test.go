@@ -338,6 +338,17 @@ func TestCheckCapital(t *testing.T) {
 			},
 		},
 		{
+			name: "issue position column resolved from correct line",
+			comment: comment{
+				lines: []string{"// Кириллица.", "// Issue. here."},
+				text:  " Кириллица.\n Issue. here.",
+				start: start,
+			},
+			issues: []Issue{
+				{Pos: token.Position{Line: 2, Column: 11}},
+			},
+		},
+		{
 			name: "sentence with leading spaces",
 			comment: comment{
 				lines: []string{"//    hello, world"},
