@@ -192,7 +192,7 @@ func findFiles(root string) chan string {
 
 	go func() {
 		defer close(out)
-		err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		err := filepath.Walk(root, func(path string, info os.FileInfo, _ error) error {
 			sep := string(filepath.Separator)
 			if strings.HasPrefix(path, "vendor"+sep) || strings.Contains(path, sep+"vendor"+sep) {
 				return nil
