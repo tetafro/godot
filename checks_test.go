@@ -420,8 +420,13 @@ func TestIsSpecialBlock(t *testing.T) {
 			isSpecial: true,
 		},
 		{
-			name:      "Test output",
+			name:      "Test testing output",
 			comment:   "// Output: true",
+			isSpecial: true,
+		},
+		{
+			name:      "Test multiline testing output",
+			comment:   "// Output:\n// true\n// false",
 			isSpecial: true,
 		},
 	}

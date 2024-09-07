@@ -230,7 +230,8 @@ func isSpecialBlock(comment string) bool {
 		strings.Contains(comment, "#define")) {
 		return true
 	}
-	if strings.HasPrefix(comment, "// Output: ") {
+	if strings.HasPrefix(comment, "// Output:") ||
+		strings.HasPrefix(comment, "// Unordered output:") {
 		return true
 	}
 	return false
