@@ -161,6 +161,13 @@ func nonCapital() int {
 	return x // non-capital-all [CAPITAL_ALL].
 }
 
+// ExamplePrintln is a function that you would normally see in tests.
+func ExamplePrintln() {
+	fmt.Println("hello")
+	// Output:
+	// hello [PASS]
+}
+
 // Comment with a URL - http://example.com/[PASS]
 
 // Multiline comment with a URL
