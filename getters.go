@@ -41,8 +41,7 @@ func newParsedFile(file *ast.File, fset *token.FileSet) (*parsedFile, error) {
 	// with code and comment without reading the file. Function `Format`
 	// from "go/format" won't help here if the original file is not gofmt-ed.
 
-	var filename string
-	filename, _ = getFilename(fset, file)
+	filename := getFilename(fset, file)
 
 	if !strings.HasSuffix(filename, ".go") {
 		return nil, errEmptyInput
@@ -262,11 +261,11 @@ func matchAny(s string, rr []*regexp.Regexp) bool {
 	return false
 }
 
-func getFilename(fset *token.FileSet, file *ast.File) (string, bool) {
+func getFilename(fset *token.FileSet, file *ast.File) string {
 	filename := fset.PositionFor(file.Pos(), true).Filename
 	if !strings.HasSuffix(filename, ".go") {
-		return fset.PositionFor(file.Pos(), false).Filename, false
+		return fset.PositionFor(file.Pos(), false).Filename
 	}
 
-	return filename, true
+	return filename
 }
