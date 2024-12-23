@@ -6,6 +6,7 @@ import (
 	"go/ast"
 	"go/token"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -231,7 +232,7 @@ func getText(comment *ast.CommentGroup, exclude []*regexp.Regexp) (s string) {
 
 // readFile reads file and returns its lines as strings.
 func readFile(filename string) ([]string, error) {
-	f, err := os.ReadFile(filename)
+	f, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, err //nolint:wrapcheck
 	}
