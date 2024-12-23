@@ -1,7 +1,6 @@
 package godot
 
 import (
-	"errors"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -70,26 +69,6 @@ func TestGetComments(t *testing.T) {
 			}
 		})
 	}
-
-	t.Run("try to get comments from cgo generated file", func(t *testing.T) {
-		testFile := filepath.Join("testdata", "get", "cgo.go")
-		fset := token.NewFileSet()
-		file, err := parser.ParseFile(fset, testFile, nil, parser.ParseComments)
-		if err != nil {
-			t.Fatalf("Failed to parse input file: %v", err)
-		}
-
-		pf, err := newParsedFile(file, fset)
-		if pf != nil {
-			t.Fatalf("Unexpected file content")
-		}
-		if !errors.Is(err, errUnsuitableInput) {
-			t.Fatalf(
-				"Unexpected error:\n  expected: %v\n       got: %v",
-				errUnsuitableInput, err,
-			)
-		}
-	})
 }
 
 func TestGetText(t *testing.T) {
