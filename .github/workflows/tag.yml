@@ -8,16 +8,16 @@ jobs:
   test:
     strategy:
       matrix:
-        go-version: [1.20.x, 1.21.x]
+        go-version: [stable, oldstabme]
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Install Go
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
-      - name: Checkout code
-        uses: actions/checkout@v2
       - name: Test
         run: go test ./...
       - name: Generate coverage report
@@ -28,24 +28,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Run linter
-        uses: golangci/golangci-lint-action@v2
+        uses: actions/checkout@v4
+      - name: Install Go
+        uses: actions/setup-go@v5
         with:
-          version: v1.59
+          go-version: stable
+      - name: Run linter
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.62
   goreleaser:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: 1.21.x
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v4
+        uses: goreleaser/goreleaser-action@v6
         with:
           version: latest
           args: release --clean
