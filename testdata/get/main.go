@@ -8,7 +8,7 @@ import "fmt"
 const (
     one = 1
 
-        two = 2
+        two = 2 // Inline comment [TOP]
     
 )
 
@@ -45,7 +45,7 @@ type Thing struct {
 }
 
 // Example is an example function. Top level function declaration comment [DECL].
-func Example() { // top level inline comment [ALL]
+func Example() { // top level inline comment [INLINE]
 	// Regular comment [ALL]
 
 	// Declaration comment [ALL]
@@ -54,5 +54,5 @@ func Example() { // top level inline comment [ALL]
 		fmt.Println("hello, world")
 	}
 
-	prn() // Inline comment [ALL]
+	prn() // Inline comment [INLINE]
 }

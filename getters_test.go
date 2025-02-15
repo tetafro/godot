@@ -39,9 +39,14 @@ func TestGetComments(t *testing.T) {
 			contains: []string{"[DECL]", "[TOP]"},
 		},
 		{
+			name:     "scope: noinline",
+			scope:    NoInlineScope,
+			contains: []string{"[DECL]", "[TOP]", "[ALL]"},
+		},
+		{
 			name:     "scope: all",
 			scope:    AllScope,
-			contains: []string{"[DECL]", "[TOP]", "[ALL]"},
+			contains: []string{"[DECL]", "[TOP]", "[ALL]", "[INLINE]"},
 		},
 	}
 

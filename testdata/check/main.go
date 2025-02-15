@@ -20,7 +20,7 @@ import (
 const (
     one = 1
 
-        two = 2
+        two = 2 // Inline comment [PERIOD_INLINE]
     
 )
 
@@ -105,7 +105,7 @@ func Sum(a, b int) int {
 	a++
 	b++
 
-	return a + b // Inline comment [PERIOD_ALL]
+	return a + b // Inline comment [PERIOD_INLINE]
 }
 
 // Declaration multiline comment
@@ -147,7 +147,7 @@ func inside() {
 	type thing struct {
 		field string
 	}
-	t := thing{} // Inline comment [PERIOD_ALL]
+	t := thing{} // Inline comment [PERIOD_INLINE]
 	println(t)
 	// @Comment without a period excluded by regexp pattern [PASS]
 }
@@ -158,7 +158,7 @@ func nonCapital() int {
 	x := 10
 
 	// non-capital-all [CAPITAL_ALL].
-	return x // non-capital-all [CAPITAL_ALL].
+	return x // non-capital-inline [CAPITAL_INLINE].
 }
 
 // ExamplePrintln is a function that you would normally see in tests.

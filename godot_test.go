@@ -96,12 +96,22 @@ func TestRun(t *testing.T) {
 			},
 		},
 		{
+			name:  "scope: noinline",
+			scope: NoInlineScope,
+			contains: []string{
+				"[PERIOD_DECL]", "[CAPITAL_DECL]",
+				"[PERIOD_TOP]", "[CAPITAL_TOP]",
+				"[PERIOD_ALL]", "[CAPITAL_ALL]",
+			},
+		},
+		{
 			name:  "scope: all",
 			scope: AllScope,
 			contains: []string{
 				"[PERIOD_DECL]", "[CAPITAL_DECL]",
 				"[PERIOD_TOP]", "[CAPITAL_TOP]",
 				"[PERIOD_ALL]", "[CAPITAL_ALL]",
+				"[PERIOD_INLINE]", "[CAPITAL_INLINE]",
 			},
 		},
 	}
@@ -254,13 +264,36 @@ func TestFix(t *testing.T) {
 		assertEqualContent(t, expected, string(fixed))
 	})
 
-	t.Run("scope: all", func(t *testing.T) {
+	t.Run("scope: noinline", func(t *testing.T) {
 		expected := strings.ReplaceAll(string(content), "[PERIOD_DECL]", "[PERIOD_DECL].")
 		expected = strings.ReplaceAll(expected, "[PERIOD_TOP]", "[PERIOD_TOP].")
 		expected = strings.ReplaceAll(expected, "[PERIOD_ALL]", "[PERIOD_ALL].")
 		expected = strings.ReplaceAll(expected, "non-capital-decl", "Non-capital-decl")
 		expected = strings.ReplaceAll(expected, "non-capital-top", "Non-capital-top")
 		expected = strings.ReplaceAll(expected, "non-capital-all", "Non-capital-all")
+
+		fixed, err := Fix(testFile, file, fset, Settings{
+			Scope:   NoInlineScope,
+			Exclude: testExclude,
+			Period:  true,
+			Capital: true,
+		})
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
+		assertEqualContent(t, expected, string(fixed))
+	})
+
+	t.Run("scope: all", func(t *testing.T) {
+		expected := strings.ReplaceAll(string(content), "[PERIOD_DECL]", "[PERIOD_DECL].")
+		expected = strings.ReplaceAll(expected, "[PERIOD_TOP]", "[PERIOD_TOP].")
+		expected = strings.ReplaceAll(expected, "[PERIOD_ALL]", "[PERIOD_ALL].")
+		expected = strings.ReplaceAll(expected, "[PERIOD_INLINE]", "[PERIOD_INLINE].")
+		expected = strings.ReplaceAll(expected, "non-capital-decl", "Non-capital-decl")
+		expected = strings.ReplaceAll(expected, "non-capital-top", "Non-capital-top")
+		expected = strings.ReplaceAll(expected, "non-capital-all", "Non-capital-all")
+		expected = strings.ReplaceAll(expected, "non-capital-inline", "Non-capital-inline")
 
 		fixed, err := Fix(testFile, file, fset, Settings{
 			Scope:   AllScope,
@@ -417,7 +450,7 @@ func TestReplace(t *testing.T) {
 		assertEqualContent(t, expected, string(fixed))
 	})
 
-	t.Run("scope: all", func(t *testing.T) {
+	t.Run("scope: noinline", func(t *testing.T) {
 		defer func() {
 			os.WriteFile(testFile, content, mode)
 		}()
@@ -427,6 +460,36 @@ func TestReplace(t *testing.T) {
 		expected = strings.ReplaceAll(expected, "non-capital-decl", "Non-capital-decl")
 		expected = strings.ReplaceAll(expected, "non-capital-top", "Non-capital-top")
 		expected = strings.ReplaceAll(expected, "non-capital-all", "Non-capital-all")
+
+		err := Replace(testFile, file, fset, Settings{
+			Scope:   NoInlineScope,
+			Exclude: testExclude,
+			Period:  true,
+			Capital: true,
+		})
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		fixed, err := os.ReadFile(testFile)
+		if err != nil {
+			t.Fatalf("Failed to read fixed file %s: %v", testFile, err)
+		}
+
+		assertEqualContent(t, expected, string(fixed))
+	})
+
+	t.Run("scope: all", func(t *testing.T) {
+		defer func() {
+			os.WriteFile(testFile, content, mode)
+		}()
+		expected := strings.ReplaceAll(string(content), "[PERIOD_DECL]", "[PERIOD_DECL].")
+		expected = strings.ReplaceAll(expected, "[PERIOD_TOP]", "[PERIOD_TOP].")
+		expected = strings.ReplaceAll(expected, "[PERIOD_ALL]", "[PERIOD_ALL].")
+		expected = strings.ReplaceAll(expected, "[PERIOD_INLINE]", "[PERIOD_INLINE].")
+		expected = strings.ReplaceAll(expected, "non-capital-decl", "Non-capital-decl")
+		expected = strings.ReplaceAll(expected, "non-capital-top", "Non-capital-top")
+		expected = strings.ReplaceAll(expected, "non-capital-all", "Non-capital-all")
+		expected = strings.ReplaceAll(expected, "non-capital-inline", "Non-capital-inline")
 
 		err := Replace(testFile, file, fset, Settings{
 			Scope:   AllScope,
