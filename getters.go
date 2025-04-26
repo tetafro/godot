@@ -17,7 +17,7 @@ var (
 )
 
 // specialReplacer is a replacer for some types of special lines in comments,
-// which shouldn't be checked. For example, if comment ends with a block of
+// which shouldn't be checked. For example, if a comment ends with a block of
 // code it should not necessarily have a period at the end.
 const specialReplacer = "<godotSpecialReplacer>"
 
