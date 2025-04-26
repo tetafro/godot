@@ -234,7 +234,6 @@ func TestCheckPeriod(t *testing.T) {
 	}
 
 	for _, tt := range testCases {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			issue := checkPeriod(tt.comment)
 			switch {
@@ -371,7 +370,6 @@ func TestCheckCapital(t *testing.T) {
 	}
 
 	for _, tt := range testCases {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			issues := checkCapital(tt.comment)
 			if len(issues) != len(tt.issues) {
@@ -443,7 +441,6 @@ func TestIsSpecialBlock(t *testing.T) {
 	}
 
 	for _, tt := range testCases {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			if isSpecialBlock(tt.comment) != tt.isSpecial {
 				t.Fatalf("Wrong result")
@@ -536,7 +533,6 @@ func TestIsSpecialLine(t *testing.T) {
 	}
 
 	for _, tt := range testCases {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			if isSpecialLine(tt.comment) != tt.isSpecial {
 				t.Fatalf("Wrong result")
@@ -579,7 +575,6 @@ func TestHasSuffix(t *testing.T) {
 	}
 
 	for _, tt := range testCases {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			if hasSuffix(tt.text, tt.suffixes) != tt.result {
 				t.Fatalf("Wrong result")
@@ -616,7 +611,6 @@ func TestByteToRuneColumn(t *testing.T) {
 	}
 
 	for _, tt := range testCases {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			if out := byteToRuneColumn(tt.str, tt.index); out != tt.out {
 				t.Fatalf("Wrong column\n  expected: %d\n       got: %d", tt.out, out)
@@ -653,7 +647,6 @@ func TestRuneToByteColumn(t *testing.T) {
 	}
 
 	for _, tt := range testCases {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			if out := runeToByteColumn(tt.str, tt.index); out != tt.out {
 				t.Fatalf("Wrong column\n  expected: %d\n       got: %d", tt.out, out)
