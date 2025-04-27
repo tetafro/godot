@@ -63,6 +63,7 @@ func TestCheckPeriod(t *testing.T) {
 			issue: &Issue{
 				Pos: token.Position{
 					Filename: start.Filename,
+					Offset:   0,
 					Line:     1,
 					Column:   16,
 				},
@@ -80,6 +81,7 @@ func TestCheckPeriod(t *testing.T) {
 			issue: &Issue{
 				Pos: token.Position{
 					Filename: start.Filename,
+					Offset:   10,
 					Line:     3,
 					Column:   6,
 				},
@@ -244,8 +246,8 @@ func TestCheckPeriod(t *testing.T) {
 			case tt.issue != nil && issue == nil:
 				t.Fatalf("Expected issue, got nil")
 			case issue.Pos != tt.issue.Pos:
-				t.Fatalf("Wrong position\n  expected: %+v\n       got: %+v",
-					tt.issue.Pos, issue.Pos)
+				t.Fatalf("Wrong position\n  expected: %+v [%d]\n       got: %+v [%d]",
+					tt.issue.Pos, tt.issue.Pos.Offset, issue.Pos, issue.Pos.Offset)
 			case issue.Message != tt.issue.Message:
 				t.Fatalf("Wrong message\n  expected: %s\n       got: %s",
 					tt.issue.Message, issue.Message)
