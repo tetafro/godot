@@ -93,8 +93,8 @@ func checkPeriod(c comment) *Issue {
 	)
 
 	// Get the offset of the first symbol in the last line of the comment.
-	// This value is used only in golangci-lint to point to the problem, and
-	// to replace the problem when running in auto-fix mode.
+	// This value is used only in golangci-lint to point to the problem,
+	// and to replace the line when running in auto-fix mode.
 	offset := c.start.Offset
 	for i := 0; i < pos.line-1; i++ {
 		offset += len(c.lines[i]) + 1
@@ -139,16 +139,19 @@ func checkCapital(c comment) []Issue {
 		c.text = strings.ReplaceAll(c.text, abbr, repl)
 	}
 
-	// List of states during the scan: `empty` - nothing special,
+	// List of states during the scan:
+	// `empty` - nothing special,
 	// `endChar` - found one of sentence ending chars (.!?),
 	// `endOfSentence` - found `endChar`, and then space or newline.
 	const empty, endChar, endOfSentence = 1, 2, 3
 
+	// Find all positions with non-capital first letters
 	var pp []position
 	pos := position{line: 1}
 	state := endOfSentence
 	if c.decl {
-		// Skip first
+		// In declaration comments the first word is the same as the name of
+		// the declared object, therefore it can be in lowercase
 		state = empty
 	}
 	for _, r := range c.text {
