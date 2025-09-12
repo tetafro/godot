@@ -135,7 +135,7 @@ func checkPeriod(c comment) *Issue {
 // checkCapital checks that each sentense of the comment starts with
 // a capital letter.
 //
-//nolint:cyclop,funlen
+//nolint:cyclop,funlen,gocognit
 func checkCapital(c comment) []Issue {
 	// Remove common abbreviations from the comment
 	for _, abbr := range abbreviations {
