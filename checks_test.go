@@ -288,7 +288,12 @@ func TestCheckCapital(t *testing.T) {
 				start: start,
 			},
 			issues: []Issue{
-				{Pos: token.Position{Line: 1, Column: 4}},
+				{Pos: token.Position{
+					Filename: "filename.go",
+					Offset:   0,
+					Line:     1,
+					Column:   4,
+				}},
 			},
 		},
 		{
@@ -303,10 +308,30 @@ func TestCheckCapital(t *testing.T) {
 				start: start,
 			},
 			issues: []Issue{
-				{Pos: token.Position{Line: 1, Column: 4}},
-				{Pos: token.Position{Line: 1, Column: 32}},
-				{Pos: token.Position{Line: 1, Column: 39}},
-				{Pos: token.Position{Line: 3, Column: 1}},
+				{Pos: token.Position{
+					Filename: "filename.go",
+					Offset:   0,
+					Line:     1,
+					Column:   4,
+				}},
+				{Pos: token.Position{
+					Filename: "filename.go",
+					Offset:   0,
+					Line:     1,
+					Column:   32,
+				}},
+				{Pos: token.Position{
+					Filename: "filename.go",
+					Offset:   0,
+					Line:     1,
+					Column:   39,
+				}},
+				{Pos: token.Position{
+					Filename: "filename.go",
+					Offset:   46,
+					Line:     3,
+					Column:   1,
+				}},
 			},
 		},
 		{
@@ -322,9 +347,24 @@ func TestCheckCapital(t *testing.T) {
 				decl:  true,
 			},
 			issues: []Issue{
-				{Pos: token.Position{Line: 1, Column: 32}},
-				{Pos: token.Position{Line: 1, Column: 39}},
-				{Pos: token.Position{Line: 3, Column: 1}},
+				{Pos: token.Position{
+					Filename: "filename.go",
+					Offset:   0,
+					Line:     1,
+					Column:   32,
+				}},
+				{Pos: token.Position{
+					Filename: "filename.go",
+					Offset:   0,
+					Line:     1,
+					Column:   39,
+				}},
+				{Pos: token.Position{
+					Filename: "filename.go",
+					Offset:   46,
+					Line:     3,
+					Column:   1,
+				}},
 			},
 		},
 		{
@@ -335,7 +375,12 @@ func TestCheckCapital(t *testing.T) {
 				start: start,
 			},
 			issues: []Issue{
-				{Pos: token.Position{Line: 1, Column: 23}},
+				{Pos: token.Position{
+					Filename: "filename.go",
+					Offset:   0,
+					Line:     1,
+					Column:   23,
+				}},
 			},
 		},
 		{
@@ -346,7 +391,12 @@ func TestCheckCapital(t *testing.T) {
 				start: start,
 			},
 			issues: []Issue{
-				{Pos: token.Position{Line: 2, Column: 11}},
+				{Pos: token.Position{
+					Filename: "filename.go",
+					Offset:   23,
+					Line:     2,
+					Column:   11,
+				}},
 			},
 		},
 		{
@@ -357,7 +407,12 @@ func TestCheckCapital(t *testing.T) {
 				start: start,
 			},
 			issues: []Issue{
-				{Pos: token.Position{Line: 1, Column: 7}},
+				{Pos: token.Position{
+					Filename: "filename.go",
+					Offset:   0,
+					Line:     1,
+					Column:   7,
+				}},
 			},
 		},
 		{
@@ -379,13 +434,9 @@ func TestCheckCapital(t *testing.T) {
 					len(tt.issues), len(issues))
 			}
 			for i := range issues {
-				if issues[i].Pos.Line != tt.issues[i].Pos.Line {
-					t.Fatalf("Wrong line\n  expected: %d\n       got: %d",
-						tt.issues[i].Pos.Line, issues[i].Pos.Line)
-				}
-				if issues[i].Pos.Column != tt.issues[i].Pos.Column {
-					t.Fatalf("Wrong column\n  expected: %d\n       got: %d",
-						tt.issues[i].Pos.Column, issues[i].Pos.Column)
+				if issues[i].Pos != tt.issues[i].Pos {
+					t.Fatalf("Wrong position\n  expected: %+v [%d]\n       got: %+v [%d]",
+						tt.issues[i].Pos, tt.issues[i].Pos.Offset, issues[i].Pos, issues[i].Pos.Offset)
 				}
 			}
 		})

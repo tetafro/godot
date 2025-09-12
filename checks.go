@@ -199,10 +199,18 @@ func checkCapital(c comment) []Issue {
 			pos.column += 2
 		}
 
+		// Get the offset of the first symbol in the current issue's line.
+		// This value is used only in golangci-lint to point to the problem,
+		// and to replace the line when running in auto-fix mode.
+		offset := c.start.Offset
+		for i := 0; i < pos.line-1; i++ {
+			offset += len(c.lines[i]) + 1
+		}
+
 		iss := Issue{
 			Pos: token.Position{
 				Filename: c.start.Filename,
-				Offset:   c.start.Offset,
+				Offset:   offset,
 				Line:     pos.line + c.start.Line - 1,
 				Column:   pos.column + c.start.Column - 1,
 			},
