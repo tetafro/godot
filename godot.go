@@ -28,7 +28,7 @@ type Issue struct {
 // Run runs this linter on the provided code.
 func Run(file *ast.File, fset *token.FileSet, settings Settings) ([]Issue, error) {
 	pf, err := newParsedFile(file, fset)
-	if errors.Is(err, errEmptyInput) || errors.Is(err, errUnsuitableInput) {
+	if errors.Is(err, errEmptyInput) {
 		return nil, nil
 	}
 	if err != nil {
