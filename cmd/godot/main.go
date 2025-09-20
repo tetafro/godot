@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/tetafro/godot"
-	yaml "gopkg.in/yaml.v2"
+	"go.yaml.in/yaml/v3"
 )
 
 // version is the application version. It is set to the latest git tag in CI.
