@@ -56,12 +56,30 @@ func checkComments(comments []comment, settings Settings) []Issue {
 
 // checkPeriod checks that the last sentense of the comment ends
 // in a period.
+//
+//nolint:cyclop
 func checkPeriod(c comment) *Issue {
+	lines := strings.Split(c.text, "\n")
+
+	// Check if the comment has any letters. Comments like "---" should not
+	// be checked at all.
+	var hasLetters bool
+	for _, line := range lines {
+		for _, c := range line {
+			if unicode.IsLetter(c) {
+				hasLetters = true
+				break
+			}
+		}
+	}
+	if !hasLetters {
+		return nil
+	}
+
 	// Check last non-empty line
 	var found bool
 	var line string
 	var pos position
-	lines := strings.Split(c.text, "\n")
 	for i := len(lines) - 1; i >= 0; i-- {
 		line = strings.TrimRightFunc(lines[i], unicode.IsSpace)
 		if line == "" {

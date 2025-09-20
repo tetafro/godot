@@ -207,31 +207,13 @@ func TestCheckPeriod(t *testing.T) {
 			},
 		},
 		{
-			name: "single closing parenthesis with period",
+			name: "separator comment without period",
 			comment: comment{
-				lines: []string{"//)."},
-				text:  ").",
+				lines: []string{"// ---"},
+				text:  "---",
 				start: start,
 			},
 			issue: nil,
-		},
-		{
-			name: "single closing parenthesis without period",
-			comment: comment{
-				lines: []string{"//)"},
-				text:  ")",
-				start: start,
-			},
-			issue: &Issue{
-				Pos: token.Position{
-					Filename: "filename.go",
-					Offset:   0,
-					Line:     1,
-					Column:   4,
-				},
-				Message:     "Comment should end in a period",
-				Replacement: "//).",
-			},
 		},
 	}
 
