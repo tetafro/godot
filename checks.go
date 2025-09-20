@@ -26,7 +26,7 @@ var (
 	}
 
 	// Special tags in comments like "//nolint:", or "//+k8s:".
-	tags = regexp.MustCompile(`^\+?[a-z0-9]+:`)
+	tags = regexp.MustCompile(`^\+?[a-z0-9-]+:`)
 
 	// Special hashtags in comments like "// #nosec".
 	hashtags = regexp.MustCompile(`^#[a-z]+($|\s)`)

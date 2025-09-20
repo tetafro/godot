@@ -24,7 +24,9 @@ const (
     
 )
 
-//args: tagged comment without period [PASS]
+//tag: tagged comment without period [PASS]
+//+tag: tagged comment without period [PASS]
+//+tag-x: tagged comment without period [PASS]
 
 // #tag hashtag comment without period [PASS]
 
