@@ -215,6 +215,29 @@ func TestCheckPeriod(t *testing.T) {
 			},
 			issue: nil,
 		},
+		{
+			name: "inline comment without period",
+			comment: comment{
+				lines: []string{"  Bar string // some comment"},
+				text:  " some comment",
+				start: token.Position{
+					Filename: "filename.go",
+					Offset:   40,
+					Line:     3,
+					Column:   14,
+				},
+			},
+			issue: &Issue{
+				Pos: token.Position{
+					Filename: "filename.go",
+					Offset:   27,
+					Line:     3,
+					Column:   29,
+				},
+				Message:     noPeriodMessage,
+				Replacement: "  Bar string // some comment.",
+			},
+		},
 	}
 
 	for _, tt := range testCases {
