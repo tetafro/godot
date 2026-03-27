@@ -35,7 +35,6 @@ Options:
     -h, --help      show this message
     -v, --version   show version`
 
-//nolint:maligned
 type arguments struct {
 	config  string
 	fix     bool
@@ -113,7 +112,7 @@ func main() {
 }
 
 func readArgs() (args arguments, err error) {
-	if len(os.Args) < 2 { //nolint:gomnd
+	if len(os.Args) < 2 {
 		return arguments{}, fmt.Errorf("not enough arguments")
 	}
 
@@ -121,7 +120,7 @@ func readArgs() (args arguments, err error) {
 	input := make([]string, 0, len(os.Args)-1)
 	for i := 1; i < len(os.Args); i++ {
 		splitted := strings.Split(os.Args[i], "=")
-		if len(splitted) > 2 { //nolint:gomnd
+		if len(splitted) > 2 {
 			return arguments{}, fmt.Errorf("invalid argument '%s'", os.Args[i])
 		}
 		input = append(input, splitted...)
