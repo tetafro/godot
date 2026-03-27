@@ -14,7 +14,7 @@ var testExclude = []string{"^ ?@"}
 
 func TestRun(t *testing.T) {
 	t.Run("empty input", func(t *testing.T) {
-		issues, err := Run(nil, nil, Settings{})
+		issues, err := Run(nil, nil, Settings{Scope: AllScope})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -31,7 +31,7 @@ func TestRun(t *testing.T) {
 			t.Fatalf("Failed to parse input file: %v", err)
 		}
 
-		issues, err := Run(f, fset, Settings{})
+		issues, err := Run(f, fset, Settings{Scope: AllScope})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -48,7 +48,7 @@ func TestRun(t *testing.T) {
 			t.Fatalf("Failed to parse input file: %v", err)
 		}
 
-		issues, err := Run(f, fset, Settings{})
+		issues, err := Run(f, fset, Settings{Scope: AllScope})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
